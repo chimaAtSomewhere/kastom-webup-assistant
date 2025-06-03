@@ -670,35 +670,185 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 var _jszip = require("jszip");
 var _jszipDefault = parcelHelpers.interopDefault(_jszip);
-const uploadInput = document.getElementById("files");
-const limitNumberInput = document.getElementById("limitNumber");
-const fileNamePrefixInput = document.getElementById("fileNamePrefix");
-const joinImagesBtn = document.getElementById("joinImages");
-const garallyContainer = document.getElementById("garally");
-joinImagesBtn.addEventListener("click", onClickJoinImagesBtn);
+/**************
+ * Components *
+ **************/ const inputImageFilesInput = document.getElementById("input-image-files");
+const fileNameBaseInput = document.getElementById("output-file-name-base");
+const controlRowsContainer = document.getElementById('control-rows-container');
+const initConfigArr = [
+    {
+        outputZipFileName: "\u672C\u5E97",
+        limitNumber: 50,
+        imageWidth: 1960,
+        imageHeight: 1280
+    },
+    {
+        outputZipFileName: "\u30C7\u30B8\u30DE\u30FC\u30C8",
+        limitNumber: 11,
+        imageWidth: 1960,
+        imageHeight: 1280
+    },
+    {
+        outputZipFileName: "\u30E4\u30D5\u30AA\u30AF",
+        limitNumber: 10,
+        imageWidth: 1960,
+        imageHeight: 1280
+    },
+    {
+        outputZipFileName: "\u30E1\u30EB\u30AB\u30EA",
+        limitNumber: 20,
+        imageWidth: 1960,
+        imageHeight: 1280
+    },
+    {
+        outputZipFileName: "Reverb",
+        limitNumber: 25,
+        imageWidth: 1960,
+        imageHeight: 1280
+    },
+    {
+        outputZipFileName: "shopify",
+        limitNumber: 100,
+        imageWidth: 1960,
+        imageHeight: 1280
+    },
+    {
+        outputZipFileName: "\u697D\u5929",
+        limitNumber: 20,
+        imageWidth: 640,
+        imageHeight: 427
+    }
+];
+const zipFileNameInputArr = [];
+const limitNumberInputArr = [];
+const imageWidthInputArr = [];
+const imageHeightInputArr = [];
+// control-rows を作成して上で宣言した配列に格納
+initConfigArr.forEach((config, row)=>{
+    const rowElement = createControlRowElement(config);
+    controlRowsContainer.appendChild(rowElement);
+    function createControlRowElement(initialConfig) {
+        const controlRow = document.createElement('div');
+        controlRow.className = 'control-row';
+        controlRow.style.marginTop = '10px';
+        controlRow.appendChild(createAndPushInputGroup('zip-file-name', 'zip-file-name', "ZIP\u30D5\u30A1\u30A4\u30EB\u540D:", 'text', initialConfig.outputZipFileName, undefined, {
+            maxlength: '50'
+        }));
+        controlRow.appendChild(createAndPushInputGroup('limit-number', 'limit-number', "\u4E0A\u9650\u679A\u6570:", 'number', String(initialConfig.limitNumber), undefined, {
+            min: '3'
+        }));
+        controlRow.appendChild(createAndPushInputGroup('image-width', 'image-width', "\u753B\u50CF\u30B5\u30A4\u30BA(\u6A2A):", 'number', String(initialConfig.imageWidth), 'px', {
+            min: '1'
+        }));
+        controlRow.appendChild(createAndPushInputGroup('image-height', 'image-height', "\u753B\u50CF\u30B5\u30A4\u30BA(\u7E26):", 'number', String(initialConfig.imageHeight), 'px', {
+            min: '1'
+        }));
+        return controlRow;
+    }
+    function createAndPushInputGroup(groupClass, inputIdBase, labelText, inputType, defaultValue, suffixText, inputAttributes) {
+        const div = document.createElement('div');
+        div.className = `input ${groupClass}`;
+        const label = document.createElement('label');
+        label.htmlFor = `${inputIdBase}-${row}`;
+        label.textContent = labelText;
+        div.appendChild(label);
+        const input = document.createElement('input');
+        input.type = inputType;
+        input.id = `${inputIdBase}-${row}`;
+        input.value = defaultValue;
+        if (inputAttributes) for(const attr in inputAttributes)input.setAttribute(attr, inputAttributes[attr]);
+        div.appendChild(input);
+        switch(inputIdBase){
+            case 'zip-file-name':
+                zipFileNameInputArr.push(input);
+                break;
+            case 'limit-number':
+                limitNumberInputArr.push(input);
+                break;
+            case 'image-width':
+                imageWidthInputArr.push(input);
+                break;
+            case 'image-height':
+                imageHeightInputArr.push(input);
+                break;
+            default:
+                break;
+        }
+        if (suffixText) {
+            if (suffixText.trim() === "px") {
+                const pxDiv = document.createElement('div');
+                pxDiv.className = 'px';
+                pxDiv.textContent = 'px';
+                div.appendChild(pxDiv);
+            } else div.appendChild(document.createTextNode(` ${suffixText}`));
+        }
+        return div;
+    }
+});
+const joinImagesBtn = document.getElementById("joining-image");
+const downloadContainer = document.getElementById('download-container');
+const downloadBtnArr = [];
+// download-button を作成して格納
+initConfigArr.forEach((config, index)=>{
+    const downloadBtn = document.createElement("button");
+    downloadBtn.className = "download-zip-button";
+    downloadBtn.id = `download-zip-button-${index}`;
+    downloadBtn.style.display = "none";
+    downloadBtn.disabled = true;
+    downloadBtnArr.push(downloadBtn);
+    const downloadBtnContainer = document.createElement("div");
+    downloadBtnContainer.appendChild(downloadBtn);
+    downloadContainer.appendChild(downloadBtnContainer);
+});
+const garallyContainer = document.getElementById("garally-container");
+/*************
+ * Variables *
+ *************/ let joinedImageFileArrArr = [];
+/*******************
+ * Event Listeners *
+ *******************/ joinImagesBtn.addEventListener("click", onClickJoinImagesBtn);
 async function onClickJoinImagesBtn() {
-    const inputImageFileArr = Array.prototype.slice.call(uploadInput.files || []);
-    const firstImageFile = inputImageFileArr[0];
-    const lastImageFile = inputImageFileArr[inputImageFileArr.length - 1];
-    const targetImageFileArr = inputImageFileArr.slice(1, -1);
-    const targetImageFilesCount = targetImageFileArr.length;
-    const limitNumber = parseInt(limitNumberInput.value);
-    const netLimitNumber = limitNumber - 2;
+    const inputImageFileArr = Array.prototype.slice.call(inputImageFilesInput.files || []);
     if (inputImageFileArr.length < 3) {
         alert("\u753B\u50CF\u306F3\u679A\u4EE5\u4E0A\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044");
         return;
     }
+    const outputFileNameBase = fileNameBaseInput.value.trim() || "image";
+    for(let i = 0; i < initConfigArr.length; i++){
+        const zipFileNameInput = document.getElementById(`zip-file-name-${i}`);
+        const limitNumberInput = document.getElementById(`limit-number-${i}`);
+        const imageWidthInput = document.getElementById(`image-width-${i}`);
+        const imageHeightInput = document.getElementById(`image-height-${i}`);
+        const zipFileName = zipFileNameInput.value;
+        const limitNumber = parseInt(limitNumberInput.value);
+        const imageWidth = parseInt(imageWidthInput.value);
+        const imageHeight = parseInt(imageHeightInput.value);
+        await doProcess(inputImageFileArr, limitNumber, imageWidth, imageHeight, outputFileNameBase, zipFileName, i);
+    }
+}
+async function doProcess(inputImageFileArr, limitNumber, imageWidth, imageHeight, outputFileNameBase, zipFileName, controlRowIndex) {
+    const firstImageFile = inputImageFileArr[0];
+    const lastImageFile = inputImageFileArr[inputImageFileArr.length - 1];
+    const targetImageFileArr = inputImageFileArr.slice(1, -1);
+    const targetImageFilesCount = targetImageFileArr.length;
+    const netLimitNumber = limitNumber - 2;
     if (isNaN(limitNumber) || limitNumber <= 0) {
-        alert("\u6709\u52B9\u306A\u4E0A\u9650\u679A\u6570\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044");
+        alert(`${zipFileName}: \u{6709}\u{52B9}\u{306A}\u{4E0A}\u{9650}\u{679A}\u{6570}\u{3092}\u{5165}\u{529B}\u{3057}\u{3066}\u{304F}\u{3060}\u{3055}\u{3044}`);
         return;
     }
     if (targetImageFilesCount < netLimitNumber) {
-        alert("\u7D50\u5408\u4E0D\u8981: \u753B\u50CF\u6570\u304C\u4E0A\u9650\u3092\u4E0B\u56DE\u3063\u3066\u3044\u307E\u3059");
+        const downloadZipBtn = downloadBtnArr[controlRowIndex];
+        downloadZipBtn.style.display = "inline-block";
+        downloadZipBtn.disabled = true;
+        downloadZipBtn.textContent = `(${zipFileName}: \u{753B}\u{50CF}\u{306E}\u{7D50}\u{5408}\u{3092}\u{884C}\u{3046}\u{5FC5}\u{8981}\u{306F}\u{3042}\u{308A}\u{307E}\u{305B}\u{3093})`;
         return;
     }
     const threshold = netLimitNumber * 4;
     if (targetImageFilesCount > threshold) {
-        alert("\u4E0D\u53EF\u80FD: \u753B\u50CF\u306E\u7D50\u5408\u3092\u884C\u3063\u3066\u3082\u4E0A\u9650\u3092\u6E80\u305F\u305B\u307E\u305B\u3093");
+        const downloadZipBtn = downloadBtnArr[controlRowIndex];
+        downloadZipBtn.style.display = "inline-block";
+        downloadZipBtn.disabled = true;
+        downloadZipBtn.textContent = `(${zipFileName}: \u{753B}\u{50CF}\u{306E}\u{7D50}\u{5408}\u{3092}\u{884C}\u{3046}\u{5FC5}\u{8981}\u{306F}\u{3042}\u{308A}\u{307E}\u{305B}\u{3093})`;
         return;
     }
     const [countToJoinFour, countToJoinThree, countToJoinTwo] = calculateCountToJoin(targetImageFileArr.length, netLimitNumber);
@@ -711,7 +861,7 @@ async function onClickJoinImagesBtn() {
             emptyImageFile(),
             emptyImageFile()
         ];
-        const joinedImage = await joinImages(fourFilesToJoin);
+        const joinedImage = await joinImages(fourFilesToJoin, imageWidth, imageHeight);
         joinedTwoImages.push(joinedImage);
     }
     const joinedThreeImages = [];
@@ -721,13 +871,13 @@ async function onClickJoinImagesBtn() {
             ...threeFilesToJoin,
             emptyImageFile()
         ];
-        const joinedImage = await joinImages(fourFilesToJoin);
+        const joinedImage = await joinImages(fourFilesToJoin, imageWidth, imageHeight);
         joinedThreeImages.push(joinedImage);
     }
     const joinedFourImages = [];
     for(let i = 0; i < countToJoinFour; i++){
         const fourFilesToJoin = targetImageFileArr.splice(-4, 4);
-        const joinedImage = await joinImages(fourFilesToJoin);
+        const joinedImage = await joinImages(fourFilesToJoin, imageWidth, imageHeight);
         joinedFourImages.push(joinedImage);
     }
     const joinedAllImages = [
@@ -738,17 +888,14 @@ async function onClickJoinImagesBtn() {
         ...joinedTwoImages.reverse(),
         lastImageFile
     ];
-    const fileNamePrefix = fileNamePrefixInput.value || "joined_image";
-    displayImages(joinedAllImages, fileNamePrefix);
-// // 新しく追加: 結合された画像をZIPファイルとしてダウンロードする
-// if (joinedAllImages.length > 0) {
-//   // ZIPファイルダウンロード用のボタンなどを別途用意しても良いでしょう。
-//   // ここでは結合処理後に自動的にZIP作成・ダウンロードを開始します。
-//   const confirmZip = confirm("結合された画像をZIPファイルとしてダウンロードしますか？");
-//   if (confirmZip) {
-//     await createAndDownloadZip(joinedAllImages, fileNamePrefix);
-//   }
-// }
+    // displayImages(joinedAllImages, outputFileNameBase);
+    joinedImageFileArrArr[controlRowIndex] = joinedAllImages;
+    const downloadZipBtn = downloadBtnArr[controlRowIndex];
+    if (joinedAllImages.length > 0) {
+        downloadZipBtn.style.display = "inline-block";
+        downloadZipBtn.disabled = false;
+        downloadZipBtn.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9}(${zipFileName}.zip)`;
+    } else downloadZipBtn.style.display = "none";
 }
 function calculateCountToJoin(fileCounts, limitNumber) {
     const overLimitCount = fileCounts - limitNumber;
@@ -790,11 +937,11 @@ function calculateCountToJoin(fileCounts, limitNumber) {
         countToJoinTwo
     ];
 }
-async function joinImages(imageFiles) {
+async function joinImages(imageFiles, width, height) {
     const loadedImages = await Promise.all(imageFiles.map((file)=>loadImage(file)));
     const canvas = document.createElement("canvas");
-    canvas.width = 1960;
-    canvas.height = 1280;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d");
     const gridCols = 2;
     const gridRows = 2;
@@ -847,8 +994,8 @@ function displayImages(imageFiles, fileNamePrefix) {
         garallyContainer.appendChild(imgElement);
         const link = document.createElement("a");
         link.href = URL.createObjectURL(imageFile);
-        link.download = `${fileNamePrefix}${index + 1}.png`;
-        link.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} ${fileNamePrefix}${index + 1}`;
+        link.download = `${fileNamePrefix}_${index + 1}.png`;
+        link.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} ${fileNamePrefix}_${index + 1}`;
         garallyContainer.appendChild(link);
         garallyContainer.appendChild(document.createElement("br"));
     });
@@ -863,29 +1010,45 @@ function emptyImageFile() {
     const dataUrl = canvas.toDataURL("image/png");
     return dataURLToFile(dataUrl, "empty.png");
 }
-async function createAndDownloadZip(imageFiles, fileNamePrefix) {
+downloadBtnArr.forEach((downloadZipBtn, index)=>{
+    downloadZipBtn.addEventListener("click", async ()=>{
+        if (joinedImageFileArrArr[index].length > 0) {
+            downloadZipBtn.disabled = true;
+            downloadZipBtn.textContent = "ZIP\u30D5\u30A1\u30A4\u30EB\u4F5C\u6210\u4E2D...";
+            const zipFileName = zipFileNameInputArr[index].value.trim() || initConfigArr[index].outputZipFileName;
+            const outputFileNameBase = fileNameBaseInput.value.trim() || "image";
+            await createAndDownloadZip(joinedImageFileArrArr[index], outputFileNameBase, zipFileName);
+            downloadZipBtn.disabled = false;
+            downloadZipBtn.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9}(${zipFileName}.zip)`;
+        } else alert("\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3059\u308B\u30D5\u30A1\u30A4\u30EB\u304C\u3042\u308A\u307E\u305B\u3093\u3002\u307E\u305A\u753B\u50CF\u3092\u7D50\u5408\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+        downloadContainer.appendChild(downloadZipBtn);
+    });
+});
+async function createAndDownloadZip(imageFiles, outputFileNameBase, zipFileName) {
     const zip = new (0, _jszipDefault.default)();
     imageFiles.forEach((file, index)=>{
-        // ファイル名が重複しないように、適切な名前を付けます。
-        // ここでは例として fileNamePrefix とインデックスを使用します。
-        const filenameInZip = `<span class="math-inline">\{fileNamePrefix\}</span>{index + 1}.${file.name.split('.').pop() || 'png'}`;
+        const filenameInZip = `${outputFileNameBase}_${(index < 10 ? '0' : '') + (index + 1)}.${file.name.split('.').pop() || 'png'}`;
         zip.file(filenameInZip, file);
     });
     try {
         const zipContent = await zip.generateAsync({
             type: "blob"
         });
+        if (!zipContent || zipContent.size === 0) {
+            alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B3\u30F3\u30C6\u30F3\u30C4\u304C\u7A7A\u3067\u3059\u3002");
+            return;
+        }
         const link = document.createElement("a");
         link.href = URL.createObjectURL(zipContent);
-        link.download = `${fileNamePrefix}all_images.zip`; // ZIPファイルの名前
-        document.body.appendChild(link); // Firefoxでダウンロードが機能するために必要
+        link.download = `${zipFileName}_${outputFileNameBase}.zip`;
+        document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link); // 作成したリンクを削除
-        URL.revokeObjectURL(link.href); // オブジェクトURLを解放
-        alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u4F5C\u6210\u3068\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u304C\u958B\u59CB\u3055\u308C\u307E\u3057\u305F\u3002");
+        setTimeout(()=>{
+            URL.revokeObjectURL(link.href);
+            document.body.removeChild(link);
+        }, 1000); // 1000ミリ秒待つ (この時間は調整が必要な場合があります)
     } catch (error) {
-        console.error("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F:", error);
-        alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002");
+        alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u307E\u305F\u306F\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B3\u30F3\u30BD\u30FC\u30EB\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
     }
 }
 
