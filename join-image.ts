@@ -5,6 +5,10 @@ const limitNumberInput = document.getElementById("limitNumber") as HTMLInputElem
 const fileNamePrefixInput = document.getElementById("fileNamePrefix") as HTMLInputElement;
 const joinImagesBtn = document.getElementById("joinImages") as HTMLButtonElement;
 const garallyContainer = document.getElementById("garally") as HTMLDivElement;
+const downloadZipBtn = document.getElementById("downloadZipBtn") as HTMLButtonElement;
+
+let filesToZip: File[] = [];
+let currentFileNamePrefixForZip: string = "";
 
 joinImagesBtn.addEventListener("click", onClickJoinImagesBtn);
 
@@ -76,15 +80,16 @@ async function onClickJoinImagesBtn(): Promise<void> {
   const fileNamePrefix: string = fileNamePrefixInput.value || "joined_image";
   displayImages(joinedAllImages, fileNamePrefix);
 
-  // // 新しく追加: 結合された画像をZIPファイルとしてダウンロードする
-  // if (joinedAllImages.length > 0) {
-  //   // ZIPファイルダウンロード用のボタンなどを別途用意しても良いでしょう。
-  //   // ここでは結合処理後に自動的にZIP作成・ダウンロードを開始します。
-  //   const confirmZip = confirm("結合された画像をZIPファイルとしてダウンロードしますか？");
-  //   if (confirmZip) {
-  //     await createAndDownloadZip(joinedAllImages, fileNamePrefix);
-  //   }
-  // }
+  if (joinedAllImages.length > 0) {
+    filesToZip = joinedAllImages; 
+    currentFileNamePrefixForZip = fileNamePrefix; 
+    downloadZipBtn.style.display = "inline-block";  
+    downloadZipBtn.disabled = false;
+  } else {
+    downloadZipBtn.style.display = "none"; 
+    filesToZip = []; 
+    currentFileNamePrefixForZip = ""; 
+  }
 }
 
 function calculateCountToJoin(fileCounts: number, limitNumber: number): [number, number, number] {
@@ -214,24 +219,47 @@ async function createAndDownloadZip(imageFiles: File[], fileNamePrefix: string):
   const zip = new JSZip();
 
   imageFiles.forEach((file, index) => {
-    // ファイル名が重複しないように、適切な名前を付けます。
-    // ここでは例として fileNamePrefix とインデックスを使用します。
-    const filenameInZip = `<span class="math-inline">\{fileNamePrefix\}</span>{index + 1}.${file.name.split('.').pop() || 'png'}`;
+    const filenameInZip = `${fileNamePrefix}${index + 1}.${file.name.split('.').pop() || 'png'}`;
     zip.file(filenameInZip, file);
   });
 
   try {
     const zipContent: Blob = await zip.generateAsync({ type: "blob" });
+
+    if (!zipContent || zipContent.size === 0) {
+      alert("ZIPファイルの生成に失敗しました。コンテンツが空です。");
+      return;
+    }
+
     const link = document.createElement("a");
     link.href = URL.createObjectURL(zipContent);
-    link.download = `${fileNamePrefix}all_images.zip`; // ZIPファイルの名前
-    document.body.appendChild(link); // Firefoxでダウンロードが機能するために必要
+
+    link.download = `${fileNamePrefix}all_images.zip`;
+    document.body.appendChild(link);
+
     link.click();
-    document.body.removeChild(link); // 作成したリンクを削除
-    URL.revokeObjectURL(link.href); // オブジェクトURLを解放
-    alert("ZIPファイルの作成とダウンロードが開始されました。");
+
+    setTimeout(() => {
+      URL.revokeObjectURL(link.href);
+      document.body.removeChild(link);
+    }, 1000); // 1000ミリ秒待つ (この時間は調整が必要な場合があります)
+
   } catch (error) {
-    console.error("ZIPファイルの生成に失敗しました:", error);
-    alert("ZIPファイルの生成に失敗しました。");
+    console.error("ZIPファイルの生成またはダウンロード処理中にエラーが発生しました:", error); // より詳細なエラー箇所を特定しやすくする
+    alert("ZIPファイルの生成またはダウンロードに失敗しました。コンソールを確認してください。");
   }
 }
+
+downloadZipBtn.addEventListener("click", async () => {
+  if (filesToZip.length > 0) {
+    downloadZipBtn.disabled = true;
+    downloadZipBtn.textContent = "ZIPファイル作成中...";
+
+    await createAndDownloadZip(filesToZip, currentFileNamePrefixForZip);
+
+    downloadZipBtn.disabled = false; 
+    downloadZipBtn.textContent = "結合画像をZIPでダウンロード"; 
+  } else {
+    alert("ダウンロードするファイルがありません。まず画像を結合してください。");
+  }
+});
