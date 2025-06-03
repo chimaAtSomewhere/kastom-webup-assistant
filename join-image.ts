@@ -1,45 +1,202 @@
 import JSZip from "jszip";
 
-const uploadInput = document.getElementById("files") as HTMLInputElement;
-const limitNumberInput = document.getElementById("limitNumber") as HTMLInputElement;
-const fileNamePrefixInput = document.getElementById("fileNamePrefix") as HTMLInputElement;
-const joinImagesBtn = document.getElementById("joinImages") as HTMLButtonElement;
-const garallyContainer = document.getElementById("garally") as HTMLDivElement;
-const downloadZipBtn = document.getElementById("downloadZipBtn") as HTMLButtonElement;
+/**************
+ * Components *
+ **************/
 
-let filesToZip: File[] = [];
-let currentFileNamePrefixForZip: string = "";
+const inputImageFilesInput: HTMLInputElement = document.getElementById("input-image-files") as HTMLInputElement;
+
+const fileNameBaseInput: HTMLInputElement = document.getElementById("output-file-name-base") as HTMLInputElement;
+
+const controlRowsContainer = document.getElementById('control-rows-container') as HTMLDivElement;
+
+interface OutputsConfig {
+  outputZipFileName: string;
+  limitNumber: number;
+  imageWidth: number;
+  imageHeight: number;
+}
+
+const initConfigArr: OutputsConfig[] = [
+  { outputZipFileName: "本店", limitNumber: 50, imageWidth: 1960, imageHeight: 1280 },
+  { outputZipFileName: "デジマート", limitNumber: 11, imageWidth: 1960, imageHeight: 1280 },
+  { outputZipFileName: "ヤフオク", limitNumber: 10, imageWidth: 1960, imageHeight: 1280 },
+  { outputZipFileName: "メルカリ", limitNumber: 20, imageWidth: 1960, imageHeight: 1280 },
+  { outputZipFileName: "Reverb", limitNumber: 25, imageWidth: 1960, imageHeight: 1280 },
+  { outputZipFileName: "shopify", limitNumber: 100, imageWidth: 1960, imageHeight: 1280 },
+  { outputZipFileName: "楽天", limitNumber: 20, imageWidth: 640, imageHeight: 427 }
+]
+
+const zipFileNameInputArr: HTMLInputElement[] = [];
+const limitNumberInputArr: HTMLInputElement[] = [];
+const imageWidthInputArr: HTMLInputElement[] = [];
+const imageHeightInputArr: HTMLInputElement[] = [];
+
+// control-rows を作成して上で宣言した配列に格納
+initConfigArr.forEach((config, row) => {
+  const rowElement = createControlRowElement(config);
+  controlRowsContainer.appendChild(rowElement);
+  
+  function createControlRowElement(initialConfig: OutputsConfig): HTMLDivElement {
+    const controlRow = document.createElement('div');
+    controlRow.className = 'control-row';
+    controlRow.style.marginTop = '10px'; 
+    
+    controlRow.appendChild(
+      createAndPushInputGroup('zip-file-name', 'zip-file-name', 'ZIPファイル名:', 'text', initialConfig.outputZipFileName, undefined, { maxlength: '50' })
+    );
+    controlRow.appendChild(
+      createAndPushInputGroup('limit-number', 'limit-number', '上限枚数:', 'number', String(initialConfig.limitNumber), undefined, { min: '3' })
+    );
+    controlRow.appendChild(
+      createAndPushInputGroup('image-width', 'image-width', '画像サイズ(横):', 'number', String(initialConfig.imageWidth), 'px', { min: '1' })
+    );
+    controlRow.appendChild(
+      createAndPushInputGroup('image-height', 'image-height', '画像サイズ(縦):', 'number', String(initialConfig.imageHeight), 'px', { min: '1' })
+    );
+    return controlRow;
+  }
+
+  function createAndPushInputGroup(
+    groupClass: string,
+    inputIdBase: string,
+    labelText: string,
+    inputType: string,
+    defaultValue: string,
+    suffixText?: string,
+    inputAttributes?: { [key: string]: string },
+  ): HTMLDivElement {
+    const div = document.createElement('div');
+    div.className = `input ${groupClass}`;
+
+    const label = document.createElement('label');
+    label.htmlFor = `${inputIdBase}-${row}`;
+    label.textContent = labelText;
+    div.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = inputType;
+    input.id = `${inputIdBase}-${row}`;
+    input.value = defaultValue;
+    if (inputAttributes) {
+      for (const attr in inputAttributes) {
+        input.setAttribute(attr, inputAttributes[attr]);
+      }
+    }
+    div.appendChild(input);
+    switch (inputIdBase) {
+      case 'zip-file-name':
+        zipFileNameInputArr.push(input);
+        break;
+      case 'limit-number':
+        limitNumberInputArr.push(input);
+        break;
+      case 'image-width':
+        imageWidthInputArr.push(input);
+        break;
+      case 'image-height':
+        imageHeightInputArr.push(input);
+        break;
+      default:
+        break;
+    }
+    if (suffixText) {
+      if (suffixText.trim() === "px") {
+        const pxDiv = document.createElement('div');
+        pxDiv.className = 'px';
+        pxDiv.textContent = 'px';
+        div.appendChild(pxDiv);
+      } else {
+        div.appendChild(document.createTextNode(` ${suffixText}`));
+      }
+    }
+    return div;
+  }
+});
+
+const joinImagesBtn = document.getElementById("joining-image") as HTMLButtonElement;
+
+const downloadContainer = document.getElementById('download-container') as HTMLDivElement;
+
+const downloadBtnArr: HTMLButtonElement[] = [];
+
+// download-button を作成して格納
+initConfigArr.forEach((config, index) => {
+  const downloadBtn = document.createElement("button");
+  downloadBtn.className = "download-zip-button";
+  downloadBtn.id = `download-zip-button-${index}`;
+  downloadBtn.style.display = "none"; 
+  downloadBtn.disabled = true; 
+  downloadBtnArr.push(downloadBtn);
+
+  const downloadBtnContainer = document.createElement("div");
+  downloadBtnContainer.appendChild(downloadBtn);
+  downloadContainer.appendChild(downloadBtnContainer);
+});
+
+const garallyContainer = document.getElementById("garally-container") as HTMLDivElement;
+
+/*************
+ * Variables *
+ *************/
+
+let joinedImageFileArrArr: File[][] = [];
+
+/*******************
+ * Event Listeners *
+ *******************/
 
 joinImagesBtn.addEventListener("click", onClickJoinImagesBtn);
 
 async function onClickJoinImagesBtn(): Promise<void> {
-  const inputImageFileArr : File[] = Array.prototype.slice.call(uploadInput.files || []);
+  const inputImageFileArr: File[] = Array.prototype.slice.call(inputImageFilesInput.files || []);
+  if (inputImageFileArr.length < 3) {
+    alert("画像は3枚以上選択してください");
+    return;
+  }
+  const outputFileNameBase: string = fileNameBaseInput.value.trim() || "image";
+  for (let i = 0; i < initConfigArr.length; i++) {
+    const zipFileNameInput = document.getElementById(`zip-file-name-${i}`) as HTMLInputElement;
+    const limitNumberInput = document.getElementById(`limit-number-${i}`) as HTMLInputElement;
+    const imageWidthInput = document.getElementById(`image-width-${i}`) as HTMLInputElement;
+    const imageHeightInput = document.getElementById(`image-height-${i}`) as HTMLInputElement;
+
+    const zipFileName = zipFileNameInput.value;
+    const limitNumber = parseInt(limitNumberInput.value);
+    const imageWidth = parseInt(imageWidthInput.value);
+    const imageHeight = parseInt(imageHeightInput.value);
+
+    await doProcess(inputImageFileArr, limitNumber, imageWidth, imageHeight, outputFileNameBase, zipFileName, i);
+  }
+}
+
+async function doProcess(inputImageFileArr : File[], limitNumber: number, imageWidth: number, imageHeight: number, outputFileNameBase: string, zipFileName: string, controlRowIndex: number): Promise<void> {
   const firstImageFile: File = inputImageFileArr[0];
   const lastImageFile: File = inputImageFileArr[inputImageFileArr.length - 1];
   const targetImageFileArr: File[] = inputImageFileArr.slice(1, -1);
   const targetImageFilesCount: number = targetImageFileArr.length;
 
-  const limitNumber: number = parseInt(limitNumberInput.value);
   const netLimitNumber: number = limitNumber - 2;
 
-  if (inputImageFileArr.length < 3) {
-    alert("画像は3枚以上選択してください");
-    return;
-  }
-
   if (isNaN(limitNumber) || limitNumber <= 0) {
-    alert("有効な上限枚数を入力してください");
+    alert(`${zipFileName}: 有効な上限枚数を入力してください`);
     return;
   }
 
   if (targetImageFilesCount < netLimitNumber) {
-    alert("結合不要: 画像数が上限を下回っています");
+    const downloadZipBtn: HTMLButtonElement = downloadBtnArr[controlRowIndex];
+    downloadZipBtn.style.display = "inline-block";  
+    downloadZipBtn.disabled = true;
+    downloadZipBtn.textContent = `(${zipFileName}: 画像の結合を行う必要はありません)`;
     return;
   }
 
   const threshold: number = netLimitNumber * 4;
   if (targetImageFilesCount > threshold) {
-    alert("不可能: 画像の結合を行っても上限を満たせません");
+    const downloadZipBtn: HTMLButtonElement = downloadBtnArr[controlRowIndex];
+    downloadZipBtn.style.display = "inline-block";  
+    downloadZipBtn.disabled = true;
+    downloadZipBtn.textContent = `(${zipFileName}: 画像の結合を行う必要はありません)`;
     return;
   }
 
@@ -51,20 +208,20 @@ async function onClickJoinImagesBtn(): Promise<void> {
   for (let i = 0; i < countToJoinTwo; i++) {
     const twoFilesToJoin: File[] = targetImageFileArr.splice(-2, 2);
     const fourFilesToJoin: File[] = [...twoFilesToJoin, emptyImageFile(), emptyImageFile()];
-    const joinedImage: File = await joinImages(fourFilesToJoin);
+    const joinedImage: File = await joinImages(fourFilesToJoin, imageWidth, imageHeight);
     joinedTwoImages.push(joinedImage);
   }
   const joinedThreeImages: File[] = [];
   for (let i = 0; i < countToJoinThree; i++) {
     const threeFilesToJoin: File[] = targetImageFileArr.splice(-3, 3);
     const fourFilesToJoin: File[] = [...threeFilesToJoin, emptyImageFile()];
-    const joinedImage: File = await joinImages(fourFilesToJoin);
+    const joinedImage: File = await joinImages(fourFilesToJoin, imageWidth, imageHeight);
     joinedThreeImages.push(joinedImage);
   }
   const joinedFourImages: File[] = [];
   for (let i = 0; i < countToJoinFour; i++) {
     const fourFilesToJoin: File[] = targetImageFileArr.splice(-4, 4);
-    const joinedImage: File = await joinImages(fourFilesToJoin);
+    const joinedImage: File = await joinImages(fourFilesToJoin, imageWidth, imageHeight);
     joinedFourImages.push(joinedImage);
   }
 
@@ -77,18 +234,17 @@ async function onClickJoinImagesBtn(): Promise<void> {
     lastImageFile
   ];
 
-  const fileNamePrefix: string = fileNamePrefixInput.value || "joined_image";
-  displayImages(joinedAllImages, fileNamePrefix);
+  // displayImages(joinedAllImages, outputFileNameBase);
 
+  joinedImageFileArrArr[controlRowIndex] = joinedAllImages;
+
+  const downloadZipBtn: HTMLButtonElement = downloadBtnArr[controlRowIndex];
   if (joinedAllImages.length > 0) {
-    filesToZip = joinedAllImages; 
-    currentFileNamePrefixForZip = fileNamePrefix; 
     downloadZipBtn.style.display = "inline-block";  
     downloadZipBtn.disabled = false;
+    downloadZipBtn.textContent = `ダウンロード(${zipFileName}.zip)`;
   } else {
-    downloadZipBtn.style.display = "none"; 
-    filesToZip = []; 
-    currentFileNamePrefixForZip = ""; 
+    downloadZipBtn.style.display = "none";
   }
 }
 
@@ -133,12 +289,12 @@ function calculateCountToJoin(fileCounts: number, limitNumber: number): [number,
   return [countToJoinFour, countToJoinThree, countToJoinTwo];
 }
 
-async function joinImages(imageFiles: File[]): Promise<File> {
+async function joinImages(imageFiles: File[], width: number, height: number): Promise<File> {
   const loadedImages: HTMLImageElement[] = await Promise.all(imageFiles.map(file => loadImage(file)));
   
   const canvas: HTMLCanvasElement = document.createElement("canvas");
-  canvas.width = 1960;
-  canvas.height = 1280;
+  canvas.width = width;
+  canvas.height = height;
   const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
   const gridCols: number = 2;
   const gridRows: number = 2;
@@ -196,8 +352,8 @@ function displayImages(imageFiles: File[], fileNamePrefix: string): void {
 
     const link = document.createElement("a");
     link.href = URL.createObjectURL(imageFile);
-    link.download = `${fileNamePrefix}${index + 1}.png`;
-    link.textContent = `ダウンロード ${fileNamePrefix}${index + 1}`;
+    link.download = `${fileNamePrefix}_${index + 1}.png`;
+    link.textContent = `ダウンロード ${fileNamePrefix}_${index + 1}`;
     garallyContainer.appendChild(link);
     garallyContainer.appendChild(document.createElement("br"));
   });
@@ -215,11 +371,31 @@ function emptyImageFile(): File {
   return dataURLToFile(dataUrl, "empty.png");
 }
 
-async function createAndDownloadZip(imageFiles: File[], fileNamePrefix: string): Promise<void> {
+downloadBtnArr.forEach((downloadZipBtn, index) => {
+  downloadZipBtn.addEventListener("click", async () => {
+    if (joinedImageFileArrArr[index].length > 0) {
+      downloadZipBtn.disabled = true;
+      downloadZipBtn.textContent = "ZIPファイル作成中...";
+
+      const zipFileName = zipFileNameInputArr[index].value.trim() || initConfigArr[index].outputZipFileName;
+      const outputFileNameBase = fileNameBaseInput.value.trim() || "image";
+
+      await createAndDownloadZip(joinedImageFileArrArr[index], outputFileNameBase, zipFileName);
+
+      downloadZipBtn.disabled = false; 
+      downloadZipBtn.textContent = `ダウンロード(${zipFileName}.zip)`; 
+    } else {
+      alert("ダウンロードするファイルがありません。まず画像を結合してください。");
+    }
+    downloadContainer.appendChild(downloadZipBtn);
+  });
+})
+
+async function createAndDownloadZip(imageFiles: File[], outputFileNameBase: string, zipFileName: string): Promise<void> {
   const zip = new JSZip();
 
   imageFiles.forEach((file, index) => {
-    const filenameInZip = `${fileNamePrefix}${index + 1}.${file.name.split('.').pop() || 'png'}`;
+    const filenameInZip = `${outputFileNameBase}_${(index < 10 ? '0' : '') + (index + 1)}.${file.name.split('.').pop() || 'png'}`;
     zip.file(filenameInZip, file);
   });
 
@@ -234,7 +410,7 @@ async function createAndDownloadZip(imageFiles: File[], fileNamePrefix: string):
     const link = document.createElement("a");
     link.href = URL.createObjectURL(zipContent);
 
-    link.download = `${fileNamePrefix}all_images.zip`;
+    link.download = `${zipFileName}_${outputFileNameBase}.zip`;
     document.body.appendChild(link);
 
     link.click();
@@ -245,21 +421,6 @@ async function createAndDownloadZip(imageFiles: File[], fileNamePrefix: string):
     }, 1000); // 1000ミリ秒待つ (この時間は調整が必要な場合があります)
 
   } catch (error) {
-    console.error("ZIPファイルの生成またはダウンロード処理中にエラーが発生しました:", error); // より詳細なエラー箇所を特定しやすくする
     alert("ZIPファイルの生成またはダウンロードに失敗しました。コンソールを確認してください。");
   }
 }
-
-downloadZipBtn.addEventListener("click", async () => {
-  if (filesToZip.length > 0) {
-    downloadZipBtn.disabled = true;
-    downloadZipBtn.textContent = "ZIPファイル作成中...";
-
-    await createAndDownloadZip(filesToZip, currentFileNamePrefixForZip);
-
-    downloadZipBtn.disabled = false; 
-    downloadZipBtn.textContent = "結合画像をZIPでダウンロード"; 
-  } else {
-    alert("ダウンロードするファイルがありません。まず画像を結合してください。");
-  }
-});
