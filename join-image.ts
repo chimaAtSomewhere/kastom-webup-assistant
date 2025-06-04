@@ -313,8 +313,8 @@ async function joinImages(imageFiles: File[], width: number, height: number): Pr
   });
   
   // Canvas の内容を Data URL に変換し、新しい File を作成
-  const mergedImageUrl: string = canvas.toDataURL("image/png");
-  const mergedImageFile: File = dataURLToFile(mergedImageUrl, "merged.png");
+  const mergedImageUrl: string = canvas.toDataURL("image/jpeg", 1.0);
+  const mergedImageFile: File = dataURLToFile(mergedImageUrl, "merged.jpeg");
   return mergedImageFile;
 }
 
@@ -357,7 +357,7 @@ function displayImages(imageFiles: File[], fileNamePrefix: string): void {
 
     const link = document.createElement("a");
     link.href = URL.createObjectURL(imageFile);
-    link.download = `${fileNamePrefix}_${index + 1}.png`;
+    link.download = `${fileNamePrefix}_${index + 1}.jpeg`;
     link.textContent = `ダウンロード ${fileNamePrefix}_${index + 1}`;
     garallyContainer.appendChild(link);
     garallyContainer.appendChild(document.createElement("br"));
@@ -372,8 +372,8 @@ function emptyImageFile(): File {
   ctx.fillStyle = "#FFFFFF"; // 白色で塗りつぶす
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  const dataUrl = canvas.toDataURL("image/png");
-  return dataURLToFile(dataUrl, "empty.png");
+  const dataUrl = canvas.toDataURL("image/jpeg", 1.0);
+  return dataURLToFile(dataUrl, "empty.jpeg");
 }
 
 downloadBtnArr.forEach((downloadZipBtn, index) => {
@@ -400,7 +400,7 @@ async function createAndDownloadZip(imageFiles: File[], outputFileNameBase: stri
   const zip = new JSZip();
 
   imageFiles.forEach((file, index) => {
-    const filenameInZip = `${outputFileNameBase}_${(index < 10 ? '0' : '') + (index + 1)}.${file.name.split('.').pop() || 'png'}`;
+    const filenameInZip = `${outputFileNameBase}_${(index+1 < 10 ? '0' : '') + (index + 1)}.${file.name.split('.').pop() || 'jpeg'}`;
     zip.file(filenameInZip, file);
   });
 
@@ -448,7 +448,7 @@ function resizeImageFile(file: File, width: number, height: number): Promise<Fil
           } else {
             reject(new Error("Canvas to Blob conversion failed"));
           }
-        }, file.type);
+        }, file.type, 1.0);
       };
       img.onerror = reject;
       img.src = e.target?.result as string;
