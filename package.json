@@ -7,7 +7,7 @@
   "license": "ISC",
   "scripts": {
     "dev": "parcel index.html",
-    "build": "parcel build index.html",
+    "build": "parcel build index.html --public-url \"https://chimaatsomewhere.github.io/kastom-webup-assistant/\"",
     "clean": "rm -rf dist .parcel-cache",
     "deploy": "npm run build && gh-pages -d dist"
   },
