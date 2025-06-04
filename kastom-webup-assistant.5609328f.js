@@ -803,7 +803,7 @@ initConfigArr.forEach((config, index)=>{
 const garallyContainer = document.getElementById("garally-container");
 /*************
  * Variables *
- *************/ let joinedImageFileArrArr = [];
+ *************/ let edittedImageFileArrArr = [];
 /*******************
  * Event Listeners *
  *******************/ joinImagesBtn.addEventListener("click", onClickJoinImagesBtn);
@@ -836,11 +836,13 @@ async function doProcess(inputImageFileArr, limitNumber, imageWidth, imageHeight
         alert(`${zipFileName}: \u{6709}\u{52B9}\u{306A}\u{4E0A}\u{9650}\u{679A}\u{6570}\u{3092}\u{5165}\u{529B}\u{3057}\u{3066}\u{304F}\u{3060}\u{3055}\u{3044}`);
         return;
     }
-    if (targetImageFilesCount < netLimitNumber) {
+    if (targetImageFilesCount <= netLimitNumber) {
+        const resizedTargetFileArr = await Promise.all(inputImageFileArr.map((file)=>resizeImageFile(file, imageWidth, imageHeight)));
+        edittedImageFileArrArr[controlRowIndex] = resizedTargetFileArr;
         const downloadZipBtn = downloadBtnArr[controlRowIndex];
         downloadZipBtn.style.display = "inline-block";
-        downloadZipBtn.disabled = true;
-        downloadZipBtn.textContent = `(${zipFileName}: \u{753B}\u{50CF}\u{306E}\u{7D50}\u{5408}\u{3092}\u{884C}\u{3046}\u{5FC5}\u{8981}\u{306F}\u{3042}\u{308A}\u{307E}\u{305B}\u{3093})`;
+        downloadZipBtn.disabled = false;
+        downloadZipBtn.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9}(${zipFileName}.zip) (\u{30B5}\u{30A4}\u{30BA}\u{5909}\u{66F4}\u{306E}\u{307F})`;
         return;
     }
     const threshold = netLimitNumber * 4;
@@ -848,7 +850,7 @@ async function doProcess(inputImageFileArr, limitNumber, imageWidth, imageHeight
         const downloadZipBtn = downloadBtnArr[controlRowIndex];
         downloadZipBtn.style.display = "inline-block";
         downloadZipBtn.disabled = true;
-        downloadZipBtn.textContent = `(${zipFileName}: \u{753B}\u{50CF}\u{306E}\u{7D50}\u{5408}\u{3092}\u{884C}\u{3046}\u{5FC5}\u{8981}\u{306F}\u{3042}\u{308A}\u{307E}\u{305B}\u{3093})`;
+        downloadZipBtn.textContent = `(${zipFileName}: \u{753B}\u{50CF}\u{7D50}\u{5408}\u{3057}\u{3066}\u{3082}\u{679A}\u{6570}\u{4E0A}\u{9650}\u{3092}\u{6E80}\u{305F}\u{305B}\u{307E}\u{305B}\u{3093})`;
         return;
     }
     const [countToJoinFour, countToJoinThree, countToJoinTwo] = calculateCountToJoin(targetImageFileArr.length, netLimitNumber);
@@ -880,16 +882,18 @@ async function doProcess(inputImageFileArr, limitNumber, imageWidth, imageHeight
         const joinedImage = await joinImages(fourFilesToJoin, imageWidth, imageHeight);
         joinedFourImages.push(joinedImage);
     }
+    const resizedFirstImageFile = await resizeImageFile(firstImageFile, imageWidth, imageHeight);
+    const resizedTargetImageFileArr = await Promise.all(targetImageFileArr.map((file)=>resizeImageFile(file, imageWidth, imageHeight)));
+    const resizedLastImageFile = await resizeImageFile(lastImageFile, imageWidth, imageHeight);
     const joinedAllImages = [
-        firstImageFile,
-        ...targetImageFileArr,
+        resizedFirstImageFile,
+        ...resizedTargetImageFileArr,
         ...joinedFourImages.reverse(),
         ...joinedThreeImages.reverse(),
         ...joinedTwoImages.reverse(),
-        lastImageFile
+        resizedLastImageFile
     ];
-    // displayImages(joinedAllImages, outputFileNameBase);
-    joinedImageFileArrArr[controlRowIndex] = joinedAllImages;
+    edittedImageFileArrArr[controlRowIndex] = joinedAllImages;
     const downloadZipBtn = downloadBtnArr[controlRowIndex];
     if (joinedAllImages.length > 0) {
         downloadZipBtn.style.display = "inline-block";
@@ -1012,16 +1016,16 @@ function emptyImageFile() {
 }
 downloadBtnArr.forEach((downloadZipBtn, index)=>{
     downloadZipBtn.addEventListener("click", async ()=>{
-        if (joinedImageFileArrArr[index].length > 0) {
+        if (edittedImageFileArrArr[index].length > 0) {
+            const temp = downloadZipBtn.textContent;
             downloadZipBtn.disabled = true;
             downloadZipBtn.textContent = "ZIP\u30D5\u30A1\u30A4\u30EB\u4F5C\u6210\u4E2D...";
             const zipFileName = zipFileNameInputArr[index].value.trim() || initConfigArr[index].outputZipFileName;
             const outputFileNameBase = fileNameBaseInput.value.trim() || "image";
-            await createAndDownloadZip(joinedImageFileArrArr[index], outputFileNameBase, zipFileName);
+            await createAndDownloadZip(edittedImageFileArrArr[index], outputFileNameBase, zipFileName);
             downloadZipBtn.disabled = false;
-            downloadZipBtn.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9}(${zipFileName}.zip)`;
+            downloadZipBtn.textContent = temp;
         } else alert("\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3059\u308B\u30D5\u30A1\u30A4\u30EB\u304C\u3042\u308A\u307E\u305B\u3093\u3002\u307E\u305A\u753B\u50CF\u3092\u7D50\u5408\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
-        downloadContainer.appendChild(downloadZipBtn);
     });
 });
 async function createAndDownloadZip(imageFiles, outputFileNameBase, zipFileName) {
@@ -1050,6 +1054,34 @@ async function createAndDownloadZip(imageFiles, outputFileNameBase, zipFileName)
     } catch (error) {
         alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u307E\u305F\u306F\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B3\u30F3\u30BD\u30FC\u30EB\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
     }
+}
+// AI に書かせたので仕様を理解していません
+function resizeImageFile(file, width, height) {
+    return new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = (e)=>{
+            const img = new Image();
+            img.onload = ()=>{
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob)=>{
+                    if (blob) resolve(new File([
+                        blob
+                    ], file.name, {
+                        type: file.type
+                    }));
+                    else reject(new Error("Canvas to Blob conversion failed"));
+                }, file.type);
+            };
+            img.onerror = reject;
+            img.src = e.target?.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
 
 },{"jszip":"fhdYz","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"fhdYz":[function(require,module,exports,__globalThis) {
