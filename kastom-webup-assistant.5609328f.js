@@ -957,8 +957,8 @@ async function joinImages(imageFiles, width, height) {
         ctx.drawImage(img, x, y, cellWidth, cellHeight);
     });
     // Canvas の内容を Data URL に変換し、新しい File を作成
-    const mergedImageUrl = canvas.toDataURL("image/png");
-    const mergedImageFile = dataURLToFile(mergedImageUrl, "merged.png");
+    const mergedImageUrl = canvas.toDataURL("image/jpeg", 1.0);
+    const mergedImageFile = dataURLToFile(mergedImageUrl, "merged.jpeg");
     return mergedImageFile;
 }
 function loadImage(file) {
@@ -998,7 +998,7 @@ function displayImages(imageFiles, fileNamePrefix) {
         garallyContainer.appendChild(imgElement);
         const link = document.createElement("a");
         link.href = URL.createObjectURL(imageFile);
-        link.download = `${fileNamePrefix}_${index + 1}.png`;
+        link.download = `${fileNamePrefix}_${index + 1}.jpeg`;
         link.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} ${fileNamePrefix}_${index + 1}`;
         garallyContainer.appendChild(link);
         garallyContainer.appendChild(document.createElement("br"));
@@ -1011,8 +1011,8 @@ function emptyImageFile() {
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "#FFFFFF"; // 白色で塗りつぶす
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL("image/png");
-    return dataURLToFile(dataUrl, "empty.png");
+    const dataUrl = canvas.toDataURL("image/jpeg", 1.0);
+    return dataURLToFile(dataUrl, "empty.jpeg");
 }
 downloadBtnArr.forEach((downloadZipBtn, index)=>{
     downloadZipBtn.addEventListener("click", async ()=>{
@@ -1031,7 +1031,7 @@ downloadBtnArr.forEach((downloadZipBtn, index)=>{
 async function createAndDownloadZip(imageFiles, outputFileNameBase, zipFileName) {
     const zip = new (0, _jszipDefault.default)();
     imageFiles.forEach((file, index)=>{
-        const filenameInZip = `${outputFileNameBase}_${(index < 10 ? '0' : '') + (index + 1)}.${file.name.split('.').pop() || 'png'}`;
+        const filenameInZip = `${outputFileNameBase}_${(index + 1 < 10 ? '0' : '') + (index + 1)}.${file.name.split('.').pop() || 'jpeg'}`;
         zip.file(filenameInZip, file);
     });
     try {
@@ -1074,7 +1074,7 @@ function resizeImageFile(file, width, height) {
                         type: file.type
                     }));
                     else reject(new Error("Canvas to Blob conversion failed"));
-                }, file.type);
+                }, file.type, 1.0);
             };
             img.onerror = reject;
             img.src = e.target?.result;
