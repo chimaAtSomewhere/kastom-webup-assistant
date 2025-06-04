@@ -140,7 +140,7 @@ const garallyContainer = document.getElementById("garally-container") as HTMLDiv
  * Variables *
  *************/
 
-let joinedImageFileArrArr: File[][] = [];
+let edittedImageFileArrArr: File[][] = [];
 
 /*******************
  * Event Listeners *
@@ -183,11 +183,14 @@ async function doProcess(inputImageFileArr : File[], limitNumber: number, imageW
     return;
   }
 
-  if (targetImageFilesCount < netLimitNumber) {
+  if (targetImageFilesCount <= netLimitNumber) {
+    const resizedTargetFileArr: File[] = await Promise.all(inputImageFileArr.map(file => resizeImageFile(file, imageWidth, imageHeight)));
+    edittedImageFileArrArr[controlRowIndex] = resizedTargetFileArr;
+
     const downloadZipBtn: HTMLButtonElement = downloadBtnArr[controlRowIndex];
     downloadZipBtn.style.display = "inline-block";  
-    downloadZipBtn.disabled = true;
-    downloadZipBtn.textContent = `(${zipFileName}: 画像の結合を行う必要はありません)`;
+    downloadZipBtn.disabled = false;
+    downloadZipBtn.textContent = `ダウンロード(${zipFileName}.zip) (サイズ変更のみ)`;
     return;
   }
 
@@ -196,7 +199,7 @@ async function doProcess(inputImageFileArr : File[], limitNumber: number, imageW
     const downloadZipBtn: HTMLButtonElement = downloadBtnArr[controlRowIndex];
     downloadZipBtn.style.display = "inline-block";  
     downloadZipBtn.disabled = true;
-    downloadZipBtn.textContent = `(${zipFileName}: 画像の結合を行う必要はありません)`;
+    downloadZipBtn.textContent = `(${zipFileName}: 画像結合しても枚数上限を満たせません)`;
     return;
   }
 
@@ -225,18 +228,20 @@ async function doProcess(inputImageFileArr : File[], limitNumber: number, imageW
     joinedFourImages.push(joinedImage);
   }
 
+  const resizedFirstImageFile: File = await resizeImageFile(firstImageFile, imageWidth, imageHeight);
+  const resizedTargetImageFileArr: File[] = await Promise.all(targetImageFileArr.map(file => resizeImageFile(file, imageWidth, imageHeight)));
+  const resizedLastImageFile: File = await resizeImageFile(lastImageFile, imageWidth, imageHeight);
+
   const joinedAllImages: File[] = [
-    firstImageFile,
-    ...targetImageFileArr,
+    resizedFirstImageFile,
+    ...resizedTargetImageFileArr,
     ...joinedFourImages.reverse(),
     ...joinedThreeImages.reverse(),
     ...joinedTwoImages.reverse(),
-    lastImageFile
+    resizedLastImageFile
   ];
 
-  // displayImages(joinedAllImages, outputFileNameBase);
-
-  joinedImageFileArrArr[controlRowIndex] = joinedAllImages;
+  edittedImageFileArrArr[controlRowIndex] = joinedAllImages;
 
   const downloadZipBtn: HTMLButtonElement = downloadBtnArr[controlRowIndex];
   if (joinedAllImages.length > 0) {
@@ -373,21 +378,21 @@ function emptyImageFile(): File {
 
 downloadBtnArr.forEach((downloadZipBtn, index) => {
   downloadZipBtn.addEventListener("click", async () => {
-    if (joinedImageFileArrArr[index].length > 0) {
+    if (edittedImageFileArrArr[index].length > 0) {
+      const temp = downloadZipBtn.textContent;
       downloadZipBtn.disabled = true;
       downloadZipBtn.textContent = "ZIPファイル作成中...";
 
       const zipFileName = zipFileNameInputArr[index].value.trim() || initConfigArr[index].outputZipFileName;
       const outputFileNameBase = fileNameBaseInput.value.trim() || "image";
 
-      await createAndDownloadZip(joinedImageFileArrArr[index], outputFileNameBase, zipFileName);
+      await createAndDownloadZip(edittedImageFileArrArr[index], outputFileNameBase, zipFileName);
 
-      downloadZipBtn.disabled = false; 
-      downloadZipBtn.textContent = `ダウンロード(${zipFileName}.zip)`; 
+      downloadZipBtn.disabled = false;
+      downloadZipBtn.textContent = temp;
     } else {
       alert("ダウンロードするファイルがありません。まず画像を結合してください。");
     }
-    downloadContainer.appendChild(downloadZipBtn);
   });
 })
 
@@ -423,4 +428,32 @@ async function createAndDownloadZip(imageFiles: File[], outputFileNameBase: stri
   } catch (error) {
     alert("ZIPファイルの生成またはダウンロードに失敗しました。コンソールを確認してください。");
   }
+}
+
+// AI に書かせたので仕様を理解していません
+function resizeImageFile(file: File, width: number, height: number): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(new File([blob], file.name, { type: file.type }));
+          } else {
+            reject(new Error("Canvas to Blob conversion failed"));
+          }
+        }, file.type);
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
