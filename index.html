@@ -1,17 +1,18 @@
-<!DOCTYPE html><meta charset=UTF-8><title>KAstom Webup Assistant</title><style>body{padding:20px;font-family:Arial,sans-serif}canvas{border:1px solid #ccc;margin-bottom:10px}.garally-container{margin-top:20px}.input{align-items:center;margin-right:20px;display:flex}.input label{white-space:nowrap;margin-right:5px}.zip-file-name input{width:70px}.file-name-prefix input{width:80px}.limit-number input{width:40px}.image-width input,.image-height input{width:45px}.control-row{align-items:start;display:flex}.px{margin-left:5px}.download-zip-button{text-align:left;width:320px}</style><body>
+<!DOCTYPE html><meta charset=UTF-8><title>KAstom Webup Assistant</title><style>body{padding:20px;font-family:Arial,sans-serif}canvas{border:1px solid #ccc;margin-bottom:10px}.gallery-container{margin-top:20px}.checkbox{align-items:left;display:flex}.input{align-items:center;margin-right:20px;display:flex}.input label{white-space:nowrap;margin-right:5px}.ec-site-name input{width:70px}.file-name-prefix input{width:80px}.limit-number input{width:40px}.image-width input,.image-height input{width:45px}.control-row{align-items:start;display:flex}.px{margin-left:5px}.download-zip-button{text-align:left;width:320px}</style><body>
     <h1>KAWA - KAstom Webup Assistant</h1>
     <h2>画像結合ツール</h2>
     <p>
       複数画像をアップロードして、EC サイトの上限に合わせたコラージュ画像を作成します。
+      <br>
+      画像ファイル名は (管理番号)_(通し番号).jpg, zipファイル名は (管理番号)_(店舗名).zip になります。 
     </p>
     <div style=display:flex>
       <div>
         <input type=file id=input-image-files multiple accept=image/*>
       </div>
       <div>
-        <label for=output-file-name>画像ファイル名:</label>
-        <input id=output-file-name-base value=0000xx-00 style=width:70px>
-        _(連番).jpg
+        <label for=managementId>管理番号:</label>
+        <input id=managementId value=0000xx-00 style=width:70px>
       </div>
     </div>
     <br>
@@ -21,7 +22,7 @@
     <br><br>
     <div id=download-container style=margin-bottom:5pt></div>
     <br><br>
-    <div id=garally-container class=garally-container></div>
-    <script type=module src=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.d7ef97a8.js></script>
+    <div id=gallery-container class=gallery-container></div>
+    <script type=module src=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.91bf3b04.js></script>
   
 
