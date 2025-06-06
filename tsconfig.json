@@ -9,6 +9,6 @@
     "sourceMap": true
   },
   "include": [
-    "join-image.ts"
+    "src/**/*.ts"
   ]
 }
