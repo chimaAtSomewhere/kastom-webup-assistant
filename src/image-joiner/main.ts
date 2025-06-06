@@ -19,6 +19,29 @@ let processedImageSets: File[][] = [];
 // * Set event listeners *
 // ***********************
 
+ui.downloadAllBtn.addEventListener("click", async () => {
+  const isProcessing = processedImageSets.some((set,index) => {
+    const isEmpty = set.length === 0;
+    const isSelected = ui.getConfig().ecSiteConfigSet[index].isSelected;
+    return isEmpty && isSelected;
+  });
+  if (isProcessing) {
+    return;
+  } else {
+    const temp = ui.downloadAllBtn.textContent;
+    ui.downloadAllBtn.disabled = true;
+    ui.downloadAllBtn.textContent = "ZIPファイル作成中...";
+
+    const managedId: string = ui.getConfig().managementId || "image";
+    const ecSiteNames: string[] = ui.getConfig().ecSiteConfigSet.map(config => config.ecSiteName);
+    await zipUtil.packageAllAndDownloadAsZip(processedImageSets, managedId, ecSiteNames);
+
+    ui.downloadAllBtn.disabled = false;
+    ui.downloadAllBtn.textContent = temp;
+  }
+});
+
+
 
 ui.downloadBtns.forEach((downloadZipBtn, index) => {
   downloadZipBtn.addEventListener("click", async () => {
@@ -113,6 +136,8 @@ ui.joinImagesBtn.addEventListener("click", async () => {
       downloadZipBtn.style.display = "none";
     }
   });
+
+  ui.downloadAllBtn.disabled = false;
 });
 
 /**

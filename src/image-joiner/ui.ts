@@ -9,6 +9,7 @@ export const controlRowsContainer: HTMLDivElement = document.getElementById('con
 export const joinImagesBtn: HTMLButtonElement = document.getElementById("joining-image") as HTMLButtonElement;
 export const downloadContainer: HTMLDivElement = document.getElementById('download-container') as HTMLDivElement;
 export const downloadBtns: HTMLButtonElement[] = [];
+export const downloadAllBtn: HTMLButtonElement = document.getElementById("download-zip-button-all") as HTMLButtonElement;
 export const galleryContainer: HTMLDivElement = document.getElementById("gallery-container") as HTMLDivElement;
 export const EcSiteNameInputs: HTMLInputElement[] = [];
 export const limitNumberInputs: HTMLInputElement[] = [];
