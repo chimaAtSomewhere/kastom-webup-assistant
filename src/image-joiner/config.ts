@@ -1,18 +1,20 @@
 export type EcSiteConfig = {
+  isSelected: boolean;
   ecSiteName: string;
   limitNumber: number;
+  isToResize: boolean;
   imageWidth: number;
   imageHeight: number;
 }
 
 export const initEcSiteConfigSet: EcSiteConfig[] = [
-  { ecSiteName: "本店", limitNumber: 50, imageWidth: 1960, imageHeight: 1280 },
-  { ecSiteName: "デジマート", limitNumber: 11, imageWidth: 1960, imageHeight: 1280 },
-  { ecSiteName: "ヤフオク", limitNumber: 10, imageWidth: 1960, imageHeight: 1280 },
-  { ecSiteName: "メルカリ", limitNumber: 20, imageWidth: 1960, imageHeight: 1280 },
-  { ecSiteName: "Reverb", limitNumber: 25, imageWidth: 1960, imageHeight: 1280 },
-  { ecSiteName: "shopify", limitNumber: 100, imageWidth: 1960, imageHeight: 1280 },
-  { ecSiteName: "楽天", limitNumber: 20, imageWidth: 640, imageHeight: 427 }
+  { isSelected: true, ecSiteName: "本店", limitNumber: 50, isToResize: false, imageWidth: 1960, imageHeight: 1280 },
+  { isSelected: true, ecSiteName: "デジマート", limitNumber: 11, isToResize: false, imageWidth: 1960, imageHeight: 1280 },
+  { isSelected: true, ecSiteName: "ヤフオク", limitNumber: 10, isToResize: false, imageWidth: 1960, imageHeight: 1280 },
+  { isSelected: true, ecSiteName: "メルカリ", limitNumber: 20, isToResize: false, imageWidth: 1960, imageHeight: 1280 },
+  { isSelected: true, ecSiteName: "Reverb", limitNumber: 25, isToResize: false, imageWidth: 1960, imageHeight: 1280 },
+  { isSelected: false, ecSiteName: "shopify", limitNumber: 100, isToResize: false, imageWidth: 1960, imageHeight: 1280 },
+  { isSelected: true, ecSiteName: "楽天", limitNumber: 20, isToResize: true, imageWidth: 640, imageHeight: 427 }
 ]
 
 export const ecSiteCount: number = initEcSiteConfigSet.length;
