@@ -682,6 +682,24 @@ let processedImageSets = [];
 // ***********************
 // * Set event listeners *
 // ***********************
+_ui.downloadAllBtn.addEventListener("click", async ()=>{
+    const isProcessing = processedImageSets.some((set, index)=>{
+        const isEmpty = set.length === 0;
+        const isSelected = _ui.getConfig().ecSiteConfigSet[index].isSelected;
+        return isEmpty && isSelected;
+    });
+    if (isProcessing) return;
+    else {
+        const temp = _ui.downloadAllBtn.textContent;
+        _ui.downloadAllBtn.disabled = true;
+        _ui.downloadAllBtn.textContent = "ZIP\u30D5\u30A1\u30A4\u30EB\u4F5C\u6210\u4E2D...";
+        const managedId = _ui.getConfig().managementId || "image";
+        const ecSiteNames = _ui.getConfig().ecSiteConfigSet.map((config)=>config.ecSiteName);
+        await _zipUtil.packageAllAndDownloadAsZip(processedImageSets, managedId, ecSiteNames);
+        _ui.downloadAllBtn.disabled = false;
+        _ui.downloadAllBtn.textContent = temp;
+    }
+});
 _ui.downloadBtns.forEach((downloadZipBtn, index)=>{
     downloadZipBtn.addEventListener("click", async ()=>{
         if (processedImageSets[index].length > 0) {
@@ -751,6 +769,7 @@ _ui.joinImagesBtn.addEventListener("click", async ()=>{
             downloadZipBtn.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} ${ecSiteName}`;
         } else downloadZipBtn.style.display = "none";
     });
+    _ui.downloadAllBtn.disabled = false;
 });
 /**
  * @description 
@@ -788,6 +807,17 @@ parcelHelpers.defineInteropFlag(exports);
  * @param {string} ecSiteName 
  * @returns {Promise<void>}
  */ parcelHelpers.export(exports, "packageAndDownloadAsZip", ()=>packageAndDownloadAsZip);
+/**
+ * @description 
+ * 画像ファイルを zip したものをダウンロードする．
+ * zip ファイルの名前は `${managedId}.zip`．
+ * これを展開すると `${ecSiteName[index]}` の名前のフォルダができ，
+ * その中に `${managementId}_${index+1}.jpeg` 画像ファイルが入る．
+ * @param {File[]} imageFiles 
+ * @param {string} managementId 
+ * @param {string[]} ecSiteNames
+ * @returns {Promise<void>}
+ */ parcelHelpers.export(exports, "packageAllAndDownloadAsZip", ()=>packageAllAndDownloadAsZip);
 var _jszip = require("jszip");
 var _jszipDefault = parcelHelpers.interopDefault(_jszip);
 async function packageAndDownloadAsZip(imageFiles, managementId, ecSiteName) {
@@ -807,6 +837,36 @@ async function packageAndDownloadAsZip(imageFiles, managementId, ecSiteName) {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(zipContent);
         link.download = `${managementId}_${ecSiteName}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(()=>{
+            URL.revokeObjectURL(link.href);
+            document.body.removeChild(link);
+        }, 1000); // 1000ミリ秒待つ (この時間は調整が必要な場合があります)
+    } catch (error) {
+        alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u307E\u305F\u306F\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B3\u30F3\u30BD\u30FC\u30EB\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+    }
+}
+async function packageAllAndDownloadAsZip(imageFileSets, managementId, ecSiteNames) {
+    const zip = new (0, _jszipDefault.default)();
+    ecSiteNames.forEach((ecSiteName, index)=>{
+        const folder = zip.folder(ecSiteName);
+        if (folder) imageFileSets[index].forEach((file, fileIndex)=>{
+            const filenameInZip = `${managementId}_${(fileIndex + 1 < 10 ? '0' : '') + (fileIndex + 1)}.${file.name.split('.').pop() || 'jpeg'}`;
+            folder.file(filenameInZip, file);
+        });
+    });
+    try {
+        const zipContent = await zip.generateAsync({
+            type: "blob"
+        });
+        if (!zipContent || zipContent.size === 0) {
+            alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B3\u30F3\u30C6\u30F3\u30C4\u304C\u7A7A\u3067\u3059\u3002");
+            return;
+        }
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(zipContent);
+        link.download = `${managementId}.zip`;
         document.body.appendChild(link);
         link.click();
         setTimeout(()=>{
@@ -6033,6 +6093,7 @@ parcelHelpers.export(exports, "controlRowsContainer", ()=>controlRowsContainer);
 parcelHelpers.export(exports, "joinImagesBtn", ()=>joinImagesBtn);
 parcelHelpers.export(exports, "downloadContainer", ()=>downloadContainer);
 parcelHelpers.export(exports, "downloadBtns", ()=>downloadBtns);
+parcelHelpers.export(exports, "downloadAllBtn", ()=>downloadAllBtn);
 parcelHelpers.export(exports, "galleryContainer", ()=>galleryContainer);
 parcelHelpers.export(exports, "EcSiteNameInputs", ()=>EcSiteNameInputs);
 parcelHelpers.export(exports, "limitNumberInputs", ()=>limitNumberInputs);
@@ -6059,6 +6120,7 @@ const controlRowsContainer = document.getElementById('control-rows-container');
 const joinImagesBtn = document.getElementById("joining-image");
 const downloadContainer = document.getElementById('download-container');
 const downloadBtns = [];
+const downloadAllBtn = document.getElementById("download-zip-button-all");
 const galleryContainer = document.getElementById("gallery-container");
 const EcSiteNameInputs = [];
 const limitNumberInputs = [];
