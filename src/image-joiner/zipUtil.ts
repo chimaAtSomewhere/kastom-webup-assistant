@@ -60,10 +60,14 @@ export async function packageAndDownloadAsZip(imageFiles: File[], managementId: 
 export async function packageAllAndDownloadAsZip(imageFileSets: File[][], managementId: string, ecSiteNames: string[]): Promise<void> {
   const zip = new JSZip();
 
-  ecSiteNames.forEach((ecSiteName, index) => {
+  imageFileSets.forEach((imageFiles, index) => {
+    if (imageFiles.length === 0) {
+      return;
+    }
+    const ecSiteName = ecSiteNames[index];
     const folder = zip.folder(ecSiteName);
     if (folder) {
-      imageFileSets[index].forEach((file, fileIndex) => {
+      imageFiles.forEach((file, fileIndex) => {
         const filenameInZip = `${managementId}_${(fileIndex+1 < 10 ? '0' : '') + (fileIndex + 1)}.${file.name.split('.').pop() || 'jpeg'}`;
         folder.file(filenameInZip, file);
       });
@@ -81,7 +85,7 @@ export async function packageAllAndDownloadAsZip(imageFileSets: File[][], manage
     const link = document.createElement("a");
     link.href = URL.createObjectURL(zipContent);
 
-    link.download = `${managementId}.zip`;
+    link.download = `${managementId}_joined.zip`;
     document.body.appendChild(link);
 
     link.click();
