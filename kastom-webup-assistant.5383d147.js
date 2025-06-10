@@ -668,7 +668,6 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 
 },{}],"3HR3x":[function(require,module,exports,__globalThis) {
 var _zipUtil = require("./zipUtil");
-var _config = require("./config");
 var _ui = require("./ui");
 var _imageProcessor = require("./imageProcessor");
 // ****************************
@@ -706,8 +705,8 @@ _ui.downloadBtns.forEach((downloadZipBtn, index)=>{
             const temp = downloadZipBtn.textContent;
             downloadZipBtn.disabled = true;
             downloadZipBtn.textContent = "ZIP\u30D5\u30A1\u30A4\u30EB\u4F5C\u6210\u4E2D...";
-            const zipFileName = _ui.EcSiteNameInputs[index].value.trim() || _config.initEcSiteConfigSet[index].ecSiteName;
-            const managementId = _ui.managementIdInput.value.trim() || "image";
+            const zipFileName = _ui.getConfig().ecSiteConfigSet[index].ecSiteName || "image";
+            const managementId = _ui.getConfig().managementId || "image";
             await _zipUtil.packageAndDownloadAsZip(processedImageSets[index], managementId, zipFileName);
             downloadZipBtn.disabled = false;
             downloadZipBtn.textContent = temp;
@@ -715,21 +714,27 @@ _ui.downloadBtns.forEach((downloadZipBtn, index)=>{
     });
 });
 _ui.joinImagesBtn.addEventListener("click", async ()=>{
+    const tmpProcessedImageSets = processedImageSets;
+    _ui.downloadAllBtn.disabled = true;
+    _ui.downloadBtns.forEach((btn)=>btn.disabled = true);
+    _ui.joinImagesBtn.disabled = true;
     const { inputFiles, ecSiteConfigSet, managementId } = _ui.getConfig();
     if (inputFiles.length < 3) {
+        _ui.joinImagesBtn.disabled = false;
+        _ui.downloadAllBtn.disabled = false;
+        _ui.downloadBtns.forEach((btn)=>btn.disabled = false);
+        processedImageSets = tmpProcessedImageSets;
         alert("\u753B\u50CF\u306F3\u679A\u4EE5\u4E0A\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044");
         return;
     }
-    ecSiteConfigSet.forEach(async ({ isSelected, ecSiteName, limitNumber, isToResize, imageWidth, imageHeight }, index)=>{
+    // ui.showLoadingIndicator();  
+    const promises = ecSiteConfigSet.map(async ({ isSelected, ecSiteName, limitNumber, isToResize, imageWidth, imageHeight }, index)=>{
         if (!isSelected) {
             processedImageSets[index] = [];
-            const downloadZipBtn = _ui.downloadBtns[index];
-            downloadZipBtn.style.display = "inline-block";
-            downloadZipBtn.disabled = true;
-            downloadZipBtn.textContent = `${ecSiteName}: \u{30C1}\u{30A7}\u{30C3}\u{30AF}\u{304C}\u{5916}\u{308C}\u{3066}\u{3044}\u{307E}\u{3059}`;
             return;
         }
         if (isNaN(limitNumber) || limitNumber <= 0) {
+            processedImageSets[index] = [];
             alert(`${ecSiteName}: \u{6709}\u{52B9}\u{306A}\u{4E0A}\u{9650}\u{679A}\u{6570}\u{3092}\u{5165}\u{529B}\u{3057}\u{3066}\u{304F}\u{3060}\u{3055}\u{3044}`);
             return;
         }
@@ -738,13 +743,11 @@ _ui.joinImagesBtn.addEventListener("click", async ()=>{
                 const resizedFiles = await Promise.all(inputFiles.map((file)=>_imageProcessor.resizeImage(file, imageWidth, imageHeight)));
                 processedImageSets[index] = resizedFiles;
                 const downloadZipBtn = _ui.downloadBtns[index];
-                downloadZipBtn.style.display = "inline-block";
                 downloadZipBtn.disabled = false;
                 downloadZipBtn.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} ${ecSiteName} (\u{30B5}\u{30A4}\u{30BA}\u{5909}\u{66F4}\u{306E}\u{307F})`;
             } else {
                 processedImageSets[index] = inputFiles;
                 const downloadZipBtn = _ui.downloadBtns[index];
-                downloadZipBtn.style.display = "inline-block";
                 downloadZipBtn.disabled = false;
                 downloadZipBtn.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} ${ecSiteName} (\u{30D5}\u{30A1}\u{30A4}\u{30EB}\u{540D}\u{5909}\u{66F4}\u{306E}\u{307F})`;
             }
@@ -764,12 +767,13 @@ _ui.joinImagesBtn.addEventListener("click", async ()=>{
         processedImageSets[index] = resizedRes;
         const downloadZipBtn = _ui.downloadBtns[index];
         if (resizedRes.length > 0) {
-            downloadZipBtn.style.display = "inline-block";
-            downloadZipBtn.disabled = false;
+            _ui.downloadBtns[index].disabled = false;
             downloadZipBtn.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} ${ecSiteName}`;
-        } else downloadZipBtn.style.display = "none";
+        }
     });
+    await Promise.all(promises);
     _ui.downloadAllBtn.disabled = false;
+    _ui.joinImagesBtn.disabled = false;
 });
 /**
  * @description 
@@ -793,7 +797,7 @@ _ui.joinImagesBtn.addEventListener("click", async ()=>{
     });
 }
 
-},{"./zipUtil":"jkCv1","./config":"5ecKO","./ui":"e86Ui","./imageProcessor":"5zxcR"}],"jkCv1":[function(require,module,exports,__globalThis) {
+},{"./zipUtil":"jkCv1","./ui":"e86Ui","./imageProcessor":"5zxcR"}],"jkCv1":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 /**
@@ -808,7 +812,7 @@ parcelHelpers.defineInteropFlag(exports);
  * @returns {Promise<void>}
  */ parcelHelpers.export(exports, "packageAndDownloadAsZip", ()=>packageAndDownloadAsZip);
 /**
- * @description 
+ * @description
  * 画像ファイルを zip したものをダウンロードする．
  * zip ファイルの名前は `${managedId}.zip`．
  * これを展開すると `${ecSiteName[index]}` の名前のフォルダができ，
@@ -820,12 +824,15 @@ parcelHelpers.defineInteropFlag(exports);
  */ parcelHelpers.export(exports, "packageAllAndDownloadAsZip", ()=>packageAllAndDownloadAsZip);
 var _jszip = require("jszip");
 var _jszipDefault = parcelHelpers.interopDefault(_jszip);
-async function packageAndDownloadAsZip(imageFiles, managementId, ecSiteName) {
-    const zip = new (0, _jszipDefault.default)();
-    imageFiles.forEach((file, index)=>{
-        const filenameInZip = `${managementId}_${(index + 1 < 10 ? '0' : '') + (index + 1)}.${file.name.split('.').pop() || 'jpeg'}`;
-        zip.file(filenameInZip, file);
-    });
+/**
+ * @description 
+ * 画像ファイルを zip したものをダウンロードする．
+ * エラー時はアラートを表示する．
+ * zip ファイルの名前は `filename` とする．
+ * @param {JSZip} zip 
+ * @param {string} filename 
+ * @returns {Promise<void>}
+ */ async function downloadZip(zip, filename) {
     try {
         const zipContent = await zip.generateAsync({
             type: "blob"
@@ -836,7 +843,7 @@ async function packageAndDownloadAsZip(imageFiles, managementId, ecSiteName) {
         }
         const link = document.createElement("a");
         link.href = URL.createObjectURL(zipContent);
-        link.download = `${managementId}_${ecSiteName}.zip`;
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         setTimeout(()=>{
@@ -846,6 +853,16 @@ async function packageAndDownloadAsZip(imageFiles, managementId, ecSiteName) {
     } catch (error) {
         alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u307E\u305F\u306F\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B3\u30F3\u30BD\u30FC\u30EB\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
     }
+}
+async function packageAndDownloadAsZip(imageFiles, managementId, ecSiteName) {
+    const zip = new (0, _jszipDefault.default)();
+    imageFiles.forEach((file, index)=>{
+        const fileNumber = String(index + 1).padStart(2, '0');
+        const filenameInZip = `${managementId}_${fileNumber}.${file.name.split('.').pop() || 'jpeg'}`;
+        zip.file(filenameInZip, file);
+    });
+    const zipFilename = `${ecSiteName}_${managementId}.zip`;
+    await downloadZip(zip, zipFilename);
 }
 async function packageAllAndDownloadAsZip(imageFileSets, managementId, ecSiteNames) {
     const zip = new (0, _jszipDefault.default)();
@@ -858,26 +875,8 @@ async function packageAllAndDownloadAsZip(imageFileSets, managementId, ecSiteNam
             folder.file(filenameInZip, file);
         });
     });
-    try {
-        const zipContent = await zip.generateAsync({
-            type: "blob"
-        });
-        if (!zipContent || zipContent.size === 0) {
-            alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B3\u30F3\u30C6\u30F3\u30C4\u304C\u7A7A\u3067\u3059\u3002");
-            return;
-        }
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(zipContent);
-        link.download = `${managementId}_joined.zip`;
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(()=>{
-            URL.revokeObjectURL(link.href);
-            document.body.removeChild(link);
-        }, 1000); // 1000ミリ秒待つ (この時間は調整が必要な場合があります)
-    } catch (error) {
-        alert("ZIP\u30D5\u30A1\u30A4\u30EB\u306E\u751F\u6210\u307E\u305F\u306F\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B3\u30F3\u30BD\u30FC\u30EB\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
-    }
+    const zipFilename = `${managementId}.zip`;
+    await downloadZip(zip, zipFilename);
 }
 
 },{"jszip":"fhdYz","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"fhdYz":[function(require,module,exports,__globalThis) {
@@ -6021,7 +6020,161 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"5ecKO":[function(require,module,exports,__globalThis) {
+},{}],"e86Ui":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "inputImageFilesInput", ()=>inputImageFilesInput);
+parcelHelpers.export(exports, "managementIdInput", ()=>managementIdInput);
+parcelHelpers.export(exports, "controlRowsContainer", ()=>controlRowsContainer);
+parcelHelpers.export(exports, "joinImagesBtn", ()=>joinImagesBtn);
+parcelHelpers.export(exports, "downloadContainer", ()=>downloadContainer);
+parcelHelpers.export(exports, "downloadBtns", ()=>downloadBtns);
+parcelHelpers.export(exports, "downloadAllBtn", ()=>downloadAllBtn);
+parcelHelpers.export(exports, "galleryContainer", ()=>galleryContainer);
+parcelHelpers.export(exports, "EcSiteNameInputs", ()=>EcSiteNameInputs);
+parcelHelpers.export(exports, "limitNumberInputs", ()=>limitNumberInputs);
+parcelHelpers.export(exports, "imageWidthInputs", ()=>imageWidthInputs);
+parcelHelpers.export(exports, "imageHeightInputs", ()=>imageHeightInputs);
+// *********************
+// * UI Initialization *
+// *********************
+/**
+ * @param {void}
+ * @returns {void}
+ * @description Initializes the UI by setting up control rows and download buttons.
+ */ parcelHelpers.export(exports, "initUI", ()=>initUI);
+/**
+ * @description
+ * 入力された画像ファイルと管理ID、ECサイトの設定を取得する。
+ * @param {void}
+ * @returns {Object} 
+ */ parcelHelpers.export(exports, "getConfig", ()=>getConfig);
+var _config = require("./config");
+const inputImageFilesInput = document.getElementById("input-image-files");
+const managementIdInput = document.getElementById("managementId");
+const controlRowsContainer = document.getElementById('control-rows-container');
+const joinImagesBtn = document.getElementById("joining-image");
+const downloadContainer = document.getElementById('download-container');
+const downloadBtns = [];
+const downloadAllBtn = document.getElementById("download-zip-button-all");
+const galleryContainer = document.getElementById("gallery-container");
+const EcSiteNameInputs = [];
+const limitNumberInputs = [];
+const imageWidthInputs = [];
+const imageHeightInputs = [];
+function initUI() {
+    initControlRows();
+    initDownloadButtons();
+}
+function initControlRows() {
+    _config.initEcSiteConfigSet.forEach((config, row)=>{
+        const rowElement = createControlRowElement(config);
+        controlRowsContainer.appendChild(rowElement);
+        function createControlRowElement(initialConfig) {
+            const controlRow = document.createElement('div');
+            controlRow.className = 'control-row';
+            controlRow.style.marginTop = '10px';
+            const checkSelectCheckbox = document.createElement('input');
+            checkSelectCheckbox.type = 'checkbox';
+            checkSelectCheckbox.id = `ec-site-checkbox-${row}`;
+            checkSelectCheckbox.checked = initialConfig.isSelected;
+            controlRow.appendChild(checkSelectCheckbox);
+            controlRow.appendChild(createAndPushInputGroup('ec-site-name', "EC\u30B5\u30A4\u30C8:", 'text', initialConfig.ecSiteName, undefined, {
+                maxlength: '50'
+            }));
+            controlRow.appendChild(createAndPushInputGroup('limit-number', "\u4E0A\u9650\u679A\u6570:", 'number', String(initialConfig.limitNumber), undefined, {
+                min: '3'
+            }));
+            const resizeCheckbox = document.createElement('input');
+            resizeCheckbox.type = 'checkbox';
+            resizeCheckbox.id = `ec-site-resize-${row}`;
+            resizeCheckbox.checked = initialConfig.isToResize;
+            controlRow.appendChild(resizeCheckbox);
+            controlRow.appendChild(document.createTextNode("\u30B5\u30A4\u30BA\u5909\u66F4\u3059\u308B: "));
+            controlRow.appendChild(createAndPushInputGroup('image-width', "\u6A2A", 'number', String(initialConfig.imageWidth), undefined, {
+                min: '1'
+            }));
+            controlRow.appendChild(createAndPushInputGroup('image-height', "\u7E26", 'number', String(initialConfig.imageHeight), undefined, {
+                min: '1'
+            }));
+            return controlRow;
+        }
+        function createAndPushInputGroup(groupClass, labelText, inputType, defaultValue, suffixText, inputAttributes) {
+            const div = document.createElement('div');
+            div.className = `input ${groupClass}`;
+            const label = document.createElement('label');
+            label.htmlFor = `${groupClass}-${row}`;
+            label.textContent = labelText;
+            div.appendChild(label);
+            const input = document.createElement('input');
+            input.type = inputType;
+            input.id = `${groupClass}-${row}`;
+            input.value = defaultValue;
+            if (inputAttributes) for(const attr in inputAttributes)input.setAttribute(attr, inputAttributes[attr]);
+            div.appendChild(input);
+            switch(groupClass){
+                case 'ec-site-name':
+                    EcSiteNameInputs.push(input);
+                    break;
+                case 'limit-number':
+                    limitNumberInputs.push(input);
+                    break;
+                case 'image-width':
+                    imageWidthInputs.push(input);
+                    break;
+                case 'image-height':
+                    imageHeightInputs.push(input);
+                    break;
+                default:
+                    break;
+            }
+            if (suffixText) {
+                if (suffixText.trim() === "px") {
+                    const pxDiv = document.createElement('div');
+                    pxDiv.className = 'px';
+                    pxDiv.textContent = 'px';
+                    div.appendChild(pxDiv);
+                } else div.appendChild(document.createTextNode(` ${suffixText}`));
+            }
+            return div;
+        }
+    });
+}
+function initDownloadButtons() {
+    _config.initEcSiteConfigSet.forEach((config, index)=>{
+        const downloadBtn = document.createElement("button");
+        downloadBtn.className = "download-zip-button";
+        downloadBtn.id = `download-zip-button-${index}`;
+        downloadBtn.style.display = "inline-block";
+        downloadBtn.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} ${config.ecSiteName}`;
+        downloadBtn.disabled = true;
+        downloadBtns.push(downloadBtn);
+        const downloadBtnContainer = document.createElement("div");
+        downloadBtnContainer.appendChild(downloadBtn);
+        downloadContainer.appendChild(downloadBtnContainer);
+    });
+}
+function getConfig() {
+    const inputFiles = Array.prototype.slice.call(inputImageFilesInput.files || []);
+    const fileNameBase = managementIdInput.value.trim() || "image";
+    const ecSiteConfigSet = _config.initEcSiteConfigSet.map((initialConfig, index)=>{
+        return {
+            isSelected: document.getElementById(`ec-site-checkbox-${index}`).checked,
+            ecSiteName: EcSiteNameInputs[index].value.trim() || initialConfig.ecSiteName,
+            limitNumber: parseInt(limitNumberInputs[index].value) || initialConfig.limitNumber,
+            isToResize: document.getElementById(`ec-site-resize-${index}`).checked,
+            imageWidth: parseInt(imageWidthInputs[index].value) || initialConfig.imageWidth,
+            imageHeight: parseInt(imageHeightInputs[index].value) || initialConfig.imageHeight
+        };
+    });
+    return {
+        inputFiles,
+        managementId: fileNameBase,
+        ecSiteConfigSet
+    };
+}
+
+},{"./config":"5ecKO","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"5ecKO":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "initEcSiteConfigSet", ()=>initEcSiteConfigSet);
@@ -6086,162 +6239,7 @@ const initEcSiteConfigSet = [
 ];
 const ecSiteCount = initEcSiteConfigSet.length;
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"e86Ui":[function(require,module,exports,__globalThis) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "inputImageFilesInput", ()=>inputImageFilesInput);
-parcelHelpers.export(exports, "managementIdInput", ()=>managementIdInput);
-parcelHelpers.export(exports, "controlRowsContainer", ()=>controlRowsContainer);
-parcelHelpers.export(exports, "joinImagesBtn", ()=>joinImagesBtn);
-parcelHelpers.export(exports, "downloadContainer", ()=>downloadContainer);
-parcelHelpers.export(exports, "downloadBtns", ()=>downloadBtns);
-parcelHelpers.export(exports, "downloadAllBtn", ()=>downloadAllBtn);
-parcelHelpers.export(exports, "galleryContainer", ()=>galleryContainer);
-parcelHelpers.export(exports, "EcSiteNameInputs", ()=>EcSiteNameInputs);
-parcelHelpers.export(exports, "limitNumberInputs", ()=>limitNumberInputs);
-parcelHelpers.export(exports, "imageWidthInputs", ()=>imageWidthInputs);
-parcelHelpers.export(exports, "imageHeightInputs", ()=>imageHeightInputs);
-// *********************
-// * UI Initialization *
-// *********************
-/**
- * @param {void}
- * @returns {void}
- * @description Initializes the UI by setting up control rows and download buttons.
- */ parcelHelpers.export(exports, "initUI", ()=>initUI);
-/**
- * @description
- * 入力された画像ファイルと管理ID、ECサイトの設定を取得する。
- * @param {void}
- * @returns {Object} 
- */ parcelHelpers.export(exports, "getConfig", ()=>getConfig);
-var _config = require("./config");
-const inputImageFilesInput = document.getElementById("input-image-files");
-const managementIdInput = document.getElementById("managementId");
-const controlRowsContainer = document.getElementById('control-rows-container');
-const joinImagesBtn = document.getElementById("joining-image");
-const downloadContainer = document.getElementById('download-container');
-const downloadBtns = [];
-const downloadAllBtn = document.getElementById("download-zip-button-all");
-const galleryContainer = document.getElementById("gallery-container");
-const EcSiteNameInputs = [];
-const limitNumberInputs = [];
-const imageWidthInputs = [];
-const imageHeightInputs = [];
-function initUI() {
-    initControlRows();
-    initDownloadButtons();
-}
-function initControlRows() {
-    _config.initEcSiteConfigSet.forEach((config, row)=>{
-        const rowElement = createControlRowElement(config);
-        controlRowsContainer.appendChild(rowElement);
-        function createControlRowElement(initialConfig) {
-            const controlRow = document.createElement('div');
-            controlRow.className = 'control-row';
-            controlRow.style.marginTop = '10px';
-            // チェックボックスを追加し，EC サイトごとに処理を行うか行わないかを選択できるようにする
-            const checkSelectCheckbox = document.createElement('input');
-            checkSelectCheckbox.type = 'checkbox';
-            checkSelectCheckbox.id = `ec-site-checkbox-${row}`;
-            checkSelectCheckbox.checked = initialConfig.isSelected;
-            controlRow.appendChild(checkSelectCheckbox);
-            controlRow.appendChild(createAndPushInputGroup('ec-site-name', "EC\u30B5\u30A4\u30C8:", 'text', initialConfig.ecSiteName, undefined, {
-                maxlength: '50'
-            }));
-            controlRow.appendChild(createAndPushInputGroup('limit-number', "\u4E0A\u9650\u679A\u6570:", 'number', String(initialConfig.limitNumber), undefined, {
-                min: '3'
-            }));
-            // 画像のリサイズを行うかどうかのチェックボックスを追加
-            const resizeCheckbox = document.createElement('input');
-            resizeCheckbox.type = 'checkbox';
-            resizeCheckbox.id = `ec-site-resize-${row}`;
-            resizeCheckbox.checked = initialConfig.isToResize;
-            controlRow.appendChild(resizeCheckbox);
-            controlRow.appendChild(document.createTextNode("\u30B5\u30A4\u30BA\u5909\u66F4\u3059\u308B: "));
-            controlRow.appendChild(createAndPushInputGroup('image-width', "\u6A2A", 'number', String(initialConfig.imageWidth), undefined, {
-                min: '1'
-            }));
-            controlRow.appendChild(createAndPushInputGroup('image-height', "\u7E26", 'number', String(initialConfig.imageHeight), undefined, {
-                min: '1'
-            }));
-            return controlRow;
-        }
-        function createAndPushInputGroup(groupClass, labelText, inputType, defaultValue, suffixText, inputAttributes) {
-            const div = document.createElement('div');
-            div.className = `input ${groupClass}`;
-            const label = document.createElement('label');
-            label.htmlFor = `${groupClass}-${row}`;
-            label.textContent = labelText;
-            div.appendChild(label);
-            const input = document.createElement('input');
-            input.type = inputType;
-            input.id = `${groupClass}-${row}`;
-            input.value = defaultValue;
-            if (inputAttributes) for(const attr in inputAttributes)input.setAttribute(attr, inputAttributes[attr]);
-            div.appendChild(input);
-            switch(groupClass){
-                case 'ec-site-name':
-                    EcSiteNameInputs.push(input);
-                    break;
-                case 'limit-number':
-                    limitNumberInputs.push(input);
-                    break;
-                case 'image-width':
-                    imageWidthInputs.push(input);
-                    break;
-                case 'image-height':
-                    imageHeightInputs.push(input);
-                    break;
-                default:
-                    break;
-            }
-            if (suffixText) {
-                if (suffixText.trim() === "px") {
-                    const pxDiv = document.createElement('div');
-                    pxDiv.className = 'px';
-                    pxDiv.textContent = 'px';
-                    div.appendChild(pxDiv);
-                } else div.appendChild(document.createTextNode(` ${suffixText}`));
-            }
-            return div;
-        }
-    });
-}
-function initDownloadButtons() {
-    _config.initEcSiteConfigSet.forEach((config, index)=>{
-        const downloadBtn = document.createElement("button");
-        downloadBtn.className = "download-zip-button";
-        downloadBtn.id = `download-zip-button-${index}`;
-        downloadBtn.style.display = "none";
-        downloadBtn.disabled = true;
-        downloadBtns.push(downloadBtn);
-        const downloadBtnContainer = document.createElement("div");
-        downloadBtnContainer.appendChild(downloadBtn);
-        downloadContainer.appendChild(downloadBtnContainer);
-    });
-}
-function getConfig() {
-    const inputFiles = Array.prototype.slice.call(inputImageFilesInput.files || []);
-    const fileNameBase = managementIdInput.value.trim() || "image";
-    const ecSiteConfigSet = _config.initEcSiteConfigSet.map((initialConfig, index)=>{
-        return {
-            isSelected: document.getElementById(`ec-site-checkbox-${index}`).checked,
-            ecSiteName: EcSiteNameInputs[index].value.trim() || initialConfig.ecSiteName,
-            limitNumber: parseInt(limitNumberInputs[index].value) || initialConfig.limitNumber,
-            isToResize: document.getElementById(`ec-site-resize-${index}`).checked,
-            imageWidth: parseInt(imageWidthInputs[index].value) || initialConfig.imageWidth,
-            imageHeight: parseInt(imageHeightInputs[index].value) || initialConfig.imageHeight
-        };
-    });
-    return {
-        inputFiles,
-        managementId: fileNameBase,
-        ecSiteConfigSet
-    };
-}
-
-},{"./config":"5ecKO","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"5zxcR":[function(require,module,exports,__globalThis) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"5zxcR":[function(require,module,exports,__globalThis) {
 /**
  * @description 
  * 真っ白な画像ファイルを生成する．
@@ -6266,7 +6264,7 @@ parcelHelpers.export(exports, "getEmptyImageFile", ()=>getEmptyImageFile);
 /**
  * @description 
  * 生成 AI に書かせたので仕様を知らない．
- * @param {File} image
+ * @param {File} file
  * @param {number} width
  * @param {number} height
  * @returns {Promise<File>}
@@ -6336,38 +6334,29 @@ function imageFileToImageElement(file) {
         reader.readAsDataURL(file);
     });
 }
-function resizeImage(image, width, height) {
+async function resizeImage(file, width, height) {
+    const img = await imageFileToImageElement(file); // 既存の関数を再利用
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, width, height);
     return new Promise((resolve, reject)=>{
-        const reader = new FileReader();
-        reader.onload = (e)=>{
-            const img = new Image();
-            img.onload = ()=>{
-                const canvas = document.createElement("canvas");
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext("2d");
-                ctx.drawImage(img, 0, 0, width, height);
-                canvas.toBlob((blob)=>{
-                    if (blob) resolve(new File([
-                        blob
-                    ], image.name, {
-                        type: image.type
-                    }));
-                    else reject(new Error("Canvas to Blob conversion failed"));
-                }, image.type, 1.0);
-            };
-            img.onerror = reject;
-            img.src = e.target?.result;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(image);
+        canvas.toBlob((blob)=>{
+            if (blob) resolve(new File([
+                blob
+            ], file.name, {
+                type: file.type
+            }));
+            else reject(new Error("Canvas to Blob conversion failed"));
+        }, file.type, 1.0);
     });
 }
 async function joinImages(image, width, height) {
     // imageFiles の枚数が平方数でない場合エラーを吐く
     const sqrtOfCount = Math.sqrt(image.length);
-    const IsCountSquare = Number.isInteger(sqrtOfCount);
-    if (!IsCountSquare) throw new Error("\u753B\u50CF\u30D5\u30A1\u30A4\u30EB\u306E\u679A\u6570\u306F\u5E73\u65B9\u6570\u3067\u306A\u3051\u308C\u3070\u306A\u308A\u307E\u305B\u3093\u3002");
+    const isCountSquare = Number.isInteger(sqrtOfCount);
+    if (!isCountSquare) throw new Error("\u753B\u50CF\u30D5\u30A1\u30A4\u30EB\u306E\u679A\u6570\u306F\u5E73\u65B9\u6570\u3067\u306A\u3051\u308C\u3070\u306A\u308A\u307E\u305B\u3093\u3002");
     // 結合する
     const loadedImages = await Promise.all(image.map((file)=>imageFileToImageElement(file)));
     const canvas = document.createElement("canvas");
