@@ -132,7 +132,8 @@ function initDownloadButtons(): void {
   const downloadBtn = document.createElement("button");
   downloadBtn.className = "download-zip-button";
   downloadBtn.id = `download-zip-button-${index}`;
-  downloadBtn.style.display = "none"; 
+  downloadBtn.style.display = "inline-block";
+  downloadBtn.textContent = `ダウンロード ${config.ecSiteName}`; 
   downloadBtn.disabled = true; 
   downloadBtns.push(downloadBtn);
 
