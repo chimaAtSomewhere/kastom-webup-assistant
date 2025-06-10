@@ -64,80 +64,86 @@ ui.downloadBtns.forEach((downloadZipBtn, index) => {
 })
 
 ui.joinImagesBtn.addEventListener("click", async () => {
-  const { inputFiles, ecSiteConfigSet, managementId } = ui.getConfig();
+  const tmpProcessedImageSets: File[][] = processedImageSets;
+  ui.downloadAllBtn.disabled = true;
+  ui.downloadBtns.forEach(btn => btn.disabled = true);
+  ui.joinImagesBtn.disabled = true;
 
+  const { inputFiles, ecSiteConfigSet, managementId } = ui.getConfig();
+  
   if (inputFiles.length < 3) {
+    ui.joinImagesBtn.disabled = false;
+    ui.downloadAllBtn.disabled = false;
+    ui.downloadBtns.forEach(btn => btn.disabled = false);
+    processedImageSets = tmpProcessedImageSets;
     alert("画像は3枚以上選択してください");
     return;
   }
 
-  ecSiteConfigSet.forEach(async ({ isSelected, ecSiteName, limitNumber, isToResize, imageWidth, imageHeight }, index) => {
-    if (!isSelected) {
-      processedImageSets[index] = [];
-      const downloadZipBtn: HTMLButtonElement = ui.downloadBtns[index];
-      downloadZipBtn.style.display = "inline-block";  
-      downloadZipBtn.disabled = true;
-      downloadZipBtn.textContent = `${ecSiteName}: チェックが外れています`;
-      return;
-    }
+  // ui.showLoadingIndicator();  
 
-    if (isNaN(limitNumber) || limitNumber <= 0) {
-      alert(`${ecSiteName}: 有効な上限枚数を入力してください`);
-      return;
-    }
-
-    if (inputFiles.length <= limitNumber) {
-      if (isToResize && (imageWidth <= 0 || imageHeight <= 0)) {
-        const resizedFiles: File[] = await Promise.all(inputFiles.map(file => imageProcessor.resizeImage(file, imageWidth, imageHeight)))
-        processedImageSets[index] = resizedFiles;
-        const downloadZipBtn: HTMLButtonElement = ui.downloadBtns[index];
-        downloadZipBtn.style.display = "inline-block";  
-        downloadZipBtn.disabled = false;
-        downloadZipBtn.textContent = `ダウンロード ${ecSiteName} (サイズ変更のみ)`;
-      } else {
-        processedImageSets[index] = inputFiles;
-        const downloadZipBtn: HTMLButtonElement = ui.downloadBtns[index];
-        downloadZipBtn.style.display = "inline-block";  
-        downloadZipBtn.disabled = false;
-        downloadZipBtn.textContent = `ダウンロード ${ecSiteName} (ファイル名変更のみ)`;
+  const promises: Promise<void>[] = 
+    ecSiteConfigSet.map(async ({ isSelected, ecSiteName, limitNumber, isToResize, imageWidth, imageHeight }, index) => {
+      if (!isSelected) {
+        processedImageSets[index] = [];
+        return;
       }
-      return;
-    }
 
-    const netLimitNumber: number = limitNumber - 2;
-    const threshold: number = netLimitNumber * 4;
-    if (inputFiles.length > threshold) {
+      if (isNaN(limitNumber) || limitNumber <= 0) {
+        processedImageSets[index] = [];
+        alert(`${ecSiteName}: 有効な上限枚数を入力してください`);
+        return;
+      }
+
+      if (inputFiles.length <= limitNumber) {
+        if (isToResize && (imageWidth <= 0 || imageHeight <= 0)) {
+          const resizedFiles: File[] = await Promise.all(inputFiles.map(file => imageProcessor.resizeImage(file, imageWidth, imageHeight)));
+          processedImageSets[index] = resizedFiles;
+          const downloadZipBtn: HTMLButtonElement = ui.downloadBtns[index];
+          downloadZipBtn.disabled = false;
+          downloadZipBtn.textContent = `ダウンロード ${ecSiteName} (サイズ変更のみ)`;
+        } else {
+          processedImageSets[index] = inputFiles;
+          const downloadZipBtn: HTMLButtonElement = ui.downloadBtns[index];
+          downloadZipBtn.disabled = false;
+          downloadZipBtn.textContent = `ダウンロード ${ecSiteName} (ファイル名変更のみ)`;
+        }
+        return;
+      }
+
+      const netLimitNumber: number = limitNumber - 2;
+      const threshold: number = netLimitNumber * 4;
+      if (inputFiles.length > threshold) {
+        const downloadZipBtn: HTMLButtonElement = ui.downloadBtns[index];
+        downloadZipBtn.style.display = "inline-block";  
+        downloadZipBtn.disabled = true;
+        downloadZipBtn.textContent = `(${ecSiteName}: 画像結合しても枚数上限を満たせません)`;
+        return;
+      }
+
+      const res: File[] = await imageProcessor.generateImageSet(
+        inputFiles,
+        limitNumber,
+        imageWidth,
+        imageHeight
+      );
+
+      const resizedRes: File[] = 
+        isToResize && imageWidth > 0 && imageHeight > 0
+          ? await Promise.all(res.map(file => imageProcessor.resizeImage(file, imageWidth, imageHeight)))
+          : res;
+      processedImageSets[index] = resizedRes;
+
       const downloadZipBtn: HTMLButtonElement = ui.downloadBtns[index];
-      downloadZipBtn.style.display = "inline-block";  
-      downloadZipBtn.disabled = true;
-      downloadZipBtn.textContent = `(${ecSiteName}: 画像結合しても枚数上限を満たせません)`;
-      return;
-    }
+      if (resizedRes.length > 0) {
+        ui.downloadBtns[index].disabled = false;
+        downloadZipBtn.textContent = `ダウンロード ${ecSiteName}`;
+      }
+    });
 
-    const res: File[] = await imageProcessor.generateImageSet(
-      inputFiles,
-      limitNumber,
-      imageWidth,
-      imageHeight
-    );
-
-    const resizedRes: File[] = 
-      isToResize && imageWidth > 0 && imageHeight > 0
-        ? await Promise.all(res.map(file => imageProcessor.resizeImage(file, imageWidth, imageHeight)))
-        : res;
-    processedImageSets[index] = resizedRes;
-
-    const downloadZipBtn: HTMLButtonElement = ui.downloadBtns[index];
-    if (resizedRes.length > 0) {
-      downloadZipBtn.style.display = "inline-block";  
-      downloadZipBtn.disabled = false;
-      downloadZipBtn.textContent = `ダウンロード ${ecSiteName}`;
-    } else {
-      downloadZipBtn.style.display = "none";
-    }
-  });
-
+  await Promise.all(promises);
   ui.downloadAllBtn.disabled = false;
+  ui.joinImagesBtn.disabled = false;
 });
 
 /**
