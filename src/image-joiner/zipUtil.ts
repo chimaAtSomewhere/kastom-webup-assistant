@@ -1,5 +1,42 @@
 import JSZip from "jszip";
 
+
+/**
+ * @description 
+ * 画像ファイルを zip したものをダウンロードする．
+ * エラー時はアラートを表示する．
+ * zip ファイルの名前は `filename` とする．
+ * @param {JSZip} zip 
+ * @param {string} filename 
+ * @returns {Promise<void>}
+ */
+async function downloadZip(zip: JSZip, filename: string): Promise<void> {
+  try {
+    const zipContent: Blob = await zip.generateAsync({ type: "blob" });
+
+    if (!zipContent || zipContent.size === 0) {
+      alert("ZIPファイルの生成に失敗しました。コンテンツが空です。");
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(zipContent);
+
+    link.download = filename;
+    document.body.appendChild(link);
+
+    link.click();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(link.href);
+      document.body.removeChild(link);
+    }, 1000); // 1000ミリ秒待つ (この時間は調整が必要な場合があります)
+
+  } catch (error) {
+    alert("ZIPファイルの生成またはダウンロードに失敗しました。コンソールを確認してください。");
+  }
+}
+
 /**
  * @description 
  * 画像ファイルを zip したものをダウンロードする．
@@ -15,39 +52,17 @@ export async function packageAndDownloadAsZip(imageFiles: File[], managementId: 
   const zip = new JSZip();
 
   imageFiles.forEach((file, index) => {
-    const filenameInZip = `${managementId}_${(index+1 < 10 ? '0' : '') + (index + 1)}.${file.name.split('.').pop() || 'jpeg'}`;
+    const fileNumber = String(index + 1).padStart(2, '0');
+    const filenameInZip = `${managementId}_${fileNumber}.${file.name.split('.').pop() || 'jpeg'}`;
     zip.file(filenameInZip, file);
   });
 
-  try {
-    const zipContent: Blob = await zip.generateAsync({ type: "blob" });
-
-    if (!zipContent || zipContent.size === 0) {
-      alert("ZIPファイルの生成に失敗しました。コンテンツが空です。");
-      return;
-    }
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(zipContent);
-
-    link.download = `${managementId}_${ecSiteName}.zip`;
-    document.body.appendChild(link);
-
-    link.click();
-
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href);
-      document.body.removeChild(link);
-    }, 1000); // 1000ミリ秒待つ (この時間は調整が必要な場合があります)
-
-  } catch (error) {
-    alert("ZIPファイルの生成またはダウンロードに失敗しました。コンソールを確認してください。");
-  }
+  const zipFilename = `${ecSiteName}_${managementId}.zip`;
+  await downloadZip(zip, zipFilename);
 }
 
-
 /**
- * @description 
+ * @description
  * 画像ファイルを zip したものをダウンロードする．
  * zip ファイルの名前は `${managedId}.zip`．
  * これを展開すると `${ecSiteName[index]}` の名前のフォルダができ，
@@ -74,28 +89,6 @@ export async function packageAllAndDownloadAsZip(imageFileSets: File[][], manage
     }
   });
 
-  try {
-    const zipContent: Blob = await zip.generateAsync({ type: "blob" });
-
-    if (!zipContent || zipContent.size === 0) {
-      alert("ZIPファイルの生成に失敗しました。コンテンツが空です。");
-      return;
-    }
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(zipContent);
-
-    link.download = `${managementId}_joined.zip`;
-    document.body.appendChild(link);
-
-    link.click();
-
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href);
-      document.body.removeChild(link);
-    }, 1000); // 1000ミリ秒待つ (この時間は調整が必要な場合があります)
-
-  } catch (error) {
-    alert("ZIPファイルの生成またはダウンロードに失敗しました。コンソールを確認してください。");
-  }
+  const zipFilename = `${managementId}.zip`;
+  await downloadZip(zip, zipFilename);
 }

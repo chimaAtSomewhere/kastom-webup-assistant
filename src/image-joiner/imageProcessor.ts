@@ -59,35 +59,28 @@ export function imageFileToImageElement(file: File): Promise<HTMLImageElement> {
 /**
  * @description 
  * 生成 AI に書かせたので仕様を知らない．
- * @param {File} image
+ * @param {File} file
  * @param {number} width
  * @param {number} height
  * @returns {Promise<File>}
  */
-export function resizeImage(image: File, width: number, height: number): Promise<File> {
+export async function resizeImage(file: File, width: number, height: number): Promise<File> {
+  const img = await imageFileToImageElement(file); // 既存の関数を再利用
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(img, 0, 0, width, height);
+
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(new File([blob], image.name, { type: image.type }));
-          } else {
-            reject(new Error("Canvas to Blob conversion failed"));
-          }
-        }, image.type, 1.0);
-      };
-      img.onerror = reject;
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(image);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(new File([blob], file.name, { type: file.type }));
+      } else {
+        reject(new Error("Canvas to Blob conversion failed"));
+      }
+    }, file.type, 1.0);
   });
 }
 
@@ -102,8 +95,8 @@ export function resizeImage(image: File, width: number, height: number): Promise
 export async function joinImages(image: File[], width: number, height: number): Promise<File> {
   // imageFiles の枚数が平方数でない場合エラーを吐く
   const sqrtOfCount: number = Math.sqrt(image.length);
-  const IsCountSquare: boolean = Number.isInteger(sqrtOfCount);
-  if (!IsCountSquare) {
+  const isCountSquare: boolean = Number.isInteger(sqrtOfCount);
+  if (!isCountSquare) {
     throw new Error("画像ファイルの枚数は平方数でなければなりません。");
   }
 

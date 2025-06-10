@@ -40,8 +40,6 @@ function initControlRows(): void {
       controlRow.className = 'control-row';
       controlRow.style.marginTop = '10px'; 
       
-      
-      // チェックボックスを追加し，EC サイトごとに処理を行うか行わないかを選択できるようにする
       const checkSelectCheckbox = document.createElement('input');
       checkSelectCheckbox.type = 'checkbox';
       checkSelectCheckbox.id = `ec-site-checkbox-${row}`;
@@ -55,7 +53,6 @@ function initControlRows(): void {
         createAndPushInputGroup('limit-number', '上限枚数:', 'number', String(initialConfig.limitNumber), undefined, { min: '3' })
       );
 
-      // 画像のリサイズを行うかどうかのチェックボックスを追加
       const resizeCheckbox = document.createElement('input');
       resizeCheckbox.type = 'checkbox';
       resizeCheckbox.id = `ec-site-resize-${row}`;
@@ -69,7 +66,6 @@ function initControlRows(): void {
       controlRow.appendChild(
         createAndPushInputGroup('image-height', '縦', 'number', String(initialConfig.imageHeight), undefined, { min: '1' })
       );
-
 
       return controlRow;
     }

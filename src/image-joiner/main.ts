@@ -50,9 +50,9 @@ ui.downloadBtns.forEach((downloadZipBtn, index) => {
       downloadZipBtn.disabled = true;
       downloadZipBtn.textContent = "ZIPファイル作成中...";
       
-      const zipFileName = ui.EcSiteNameInputs[index].value.trim() || config.initEcSiteConfigSet[index].ecSiteName;
-      const managementId = ui.managementIdInput.value.trim() || "image";
-      
+      const zipFileName = ui.getConfig().ecSiteConfigSet[index].ecSiteName || "image";
+      const managementId = ui.getConfig().managementId || "image";
+
       await zipUtil.packageAndDownloadAsZip(processedImageSets[index], managementId, zipFileName);
       
       downloadZipBtn.disabled = false;
