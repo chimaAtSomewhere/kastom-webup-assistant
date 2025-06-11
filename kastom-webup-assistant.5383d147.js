@@ -739,7 +739,7 @@ _ui.joinImagesBtn.addEventListener("click", async ()=>{
             return;
         }
         if (inputFiles.length <= limitNumber) {
-            if (isToResize && (imageWidth <= 0 || imageHeight <= 0)) {
+            if (isToResize) {
                 const resizedFiles = await Promise.all(inputFiles.map((file)=>_imageProcessor.resizeImage(file, imageWidth, imageHeight)));
                 processedImageSets[index] = resizedFiles;
                 const downloadZipBtn = _ui.downloadBtns[index];
