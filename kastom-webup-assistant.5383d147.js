@@ -668,16 +668,25 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 
 },{}],"3HR3x":[function(require,module,exports,__globalThis) {
 var _zipUtil = require("./zipUtil");
+var _config = require("./config");
 var _ui = require("./ui");
 var _imageProcessor = require("./imageProcessor");
-// ****************************
-// * Initialize UI components *
-// ****************************
+// *****************
+// * UI components *
+// *****************
 _ui.initUI();
 // *************
 // * Variables *
 // *************
-let processedImageSets = [];
+let processedImageSets = new Array(_config.ecSiteCount).fill([]);
+let activeTabIndex = 1;
+var ProcessStatus = /*#__PURE__*/ function(ProcessStatus) {
+    ProcessStatus["NOT_PROCESSED"] = "\u672A\u51E6\u7406";
+    ProcessStatus["PROCESSING"] = "\u51E6\u7406\u4E2D";
+    ProcessStatus["PROCESSED"] = "\u51E6\u7406\u6E08\u307F";
+    return ProcessStatus;
+}(ProcessStatus || {});
+let processStatus = "\u672A\u51E6\u7406";
 // ***********************
 // * Set event listeners *
 // ***********************
@@ -715,9 +724,12 @@ _ui.downloadBtns.forEach((downloadZipBtn, index)=>{
 });
 _ui.joinImagesBtn.addEventListener("click", async ()=>{
     const tmpProcessedImageSets = processedImageSets;
+    processedImageSets = new Array(_config.ecSiteCount).fill([]);
     _ui.downloadAllBtn.disabled = true;
     _ui.downloadBtns.forEach((btn)=>btn.disabled = true);
     _ui.joinImagesBtn.disabled = true;
+    processStatus = "\u51E6\u7406\u4E2D";
+    updateTabDisplay();
     const { inputFiles, ecSiteConfigSet, managementId } = _ui.getConfig();
     if (inputFiles.length < 3) {
         _ui.joinImagesBtn.disabled = false;
@@ -727,7 +739,6 @@ _ui.joinImagesBtn.addEventListener("click", async ()=>{
         alert("\u753B\u50CF\u306F3\u679A\u4EE5\u4E0A\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044");
         return;
     }
-    // ui.showLoadingIndicator();  
     const promises = ecSiteConfigSet.map(async ({ isSelected, ecSiteName, limitNumber, isToResize, imageWidth, imageHeight }, index)=>{
         if (!isSelected) {
             processedImageSets[index] = [];
@@ -774,30 +785,52 @@ _ui.joinImagesBtn.addEventListener("click", async ()=>{
     await Promise.all(promises);
     _ui.downloadAllBtn.disabled = false;
     _ui.joinImagesBtn.disabled = false;
+    processStatus = "\u51E6\u7406\u6E08\u307F";
+    updateTabDisplay();
+});
+_ui.tabBtns.forEach((tabButton, index)=>{
+    tabButton.addEventListener("click", ()=>{
+        activeTabIndex = index;
+        updateTabDisplay();
+    });
+});
+_ui.checkBoxes.forEach((checkbox, index)=>{
+    checkbox.addEventListener("change", ()=>{
+        _ui.tabBtns[index].disabled = !checkbox.checked;
+        updateTabDisplay();
+    });
 });
 /**
- * @description 
- * 画像ファイルとそのダウンロードリンクとを表示する．
- * @param imageFiles 
- * @param fileNamePrefix 
- */ function displayImages(imageFiles, fileNamePrefix) {
-    _ui.galleryContainer.innerHTML = "";
-    imageFiles.forEach((imageFile, index)=>{
-        const imgElement = document.createElement("img");
-        imgElement.src = URL.createObjectURL(imageFile);
-        imgElement.width = 200;
-        imgElement.height = 150;
-        _ui.galleryContainer.appendChild(imgElement);
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(imageFile);
-        link.download = `${fileNamePrefix}_${index + 1}.jpeg`;
-        link.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} ${fileNamePrefix}_${index + 1}`;
-        _ui.galleryContainer.appendChild(link);
-        _ui.galleryContainer.appendChild(document.createElement("br"));
+ * @description タブの表示状態とコンテンツを更新する
+ */ function updateTabDisplay() {
+    const managementId = _ui.getConfig().managementId || '0000xx-00';
+    _ui.tabBtns.forEach((btn)=>{
+        if (parseInt(btn.dataset.index) === activeTabIndex) btn.classList.add("active");
+        else btn.classList.remove("active");
     });
+    switch(processStatus){
+        case "\u672A\u51E6\u7406":
+            _ui.tabContentContainer.innerHTML = "\u30D5\u30A1\u30A4\u30EB\u3092\u9078\u629E\u3057\u3066\u753B\u50CF\u7D50\u5408\u3092\u958B\u59CB\u3057\u3066\u304F\u3060\u3055\u3044";
+            break;
+        case "\u51E6\u7406\u4E2D":
+            _ui.tabContentContainer.innerHTML = "\u753B\u50CF\u3092\u7D50\u5408\u4E2D\u3067\u3059\u3002\u3057\u3070\u3089\u304F\u304A\u5F85\u3061\u304F\u3060\u3055\u3044...";
+            break;
+        case "\u51E6\u7406\u6E08\u307F":
+            if (processedImageSets[activeTabIndex] && processedImageSets[activeTabIndex].length > 0) _ui.displayImageSet(processedImageSets[activeTabIndex], managementId, _ui.tabContentContainer);
+            else {
+                const conf = _ui.getConfig().ecSiteConfigSet[activeTabIndex];
+                if (conf && conf.isSelected) _ui.tabContentContainer.innerHTML = "\u753B\u50CF\u304C\u7D50\u5408\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002";
+                else _ui.tabContentContainer.innerHTML = "\u8868\u793A\u3059\u308B\u30BF\u30D6\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+            }
+            break;
+        default:
+            _ui.tabContentContainer.innerHTML = "\u4E0D\u660E\u306A\u72B6\u614B\u3067\u3059\u3002\u30B3\u30F3\u30BD\u30FC\u30EB\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+            console.error("Unknown process status:", processStatus);
+            break;
+    }
 }
 
-},{"./zipUtil":"jkCv1","./ui":"e86Ui","./imageProcessor":"5zxcR"}],"jkCv1":[function(require,module,exports,__globalThis) {
+},{"./zipUtil":"jkCv1","./ui":"e86Ui","./imageProcessor":"5zxcR","./config":"5ecKO"}],"jkCv1":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 /**
@@ -6030,19 +6063,34 @@ parcelHelpers.export(exports, "joinImagesBtn", ()=>joinImagesBtn);
 parcelHelpers.export(exports, "downloadContainer", ()=>downloadContainer);
 parcelHelpers.export(exports, "downloadBtns", ()=>downloadBtns);
 parcelHelpers.export(exports, "downloadAllBtn", ()=>downloadAllBtn);
-parcelHelpers.export(exports, "galleryContainer", ()=>galleryContainer);
+parcelHelpers.export(exports, "tabsContainer", ()=>tabsContainer);
+parcelHelpers.export(exports, "tabContentContainer", ()=>tabContentContainer);
+parcelHelpers.export(exports, "tabBtns", ()=>tabBtns);
+parcelHelpers.export(exports, "checkBoxes", ()=>checkBoxes);
 parcelHelpers.export(exports, "EcSiteNameInputs", ()=>EcSiteNameInputs);
 parcelHelpers.export(exports, "limitNumberInputs", ()=>limitNumberInputs);
 parcelHelpers.export(exports, "imageWidthInputs", ()=>imageWidthInputs);
 parcelHelpers.export(exports, "imageHeightInputs", ()=>imageHeightInputs);
-// *********************
-// * UI Initialization *
-// *********************
+// **************
+// * Components *
+// **************
 /**
  * @param {void}
  * @returns {void}
  * @description Initializes the UI by setting up control rows and download buttons.
  */ parcelHelpers.export(exports, "initUI", ()=>initUI);
+/**
+ * @description 
+ * 指定されたコンテナに画像ファイルとそのダウンロードリンクを表示する。
+ * @param {File[]} imageFiles
+ * @param {string} managementId
+ * @param {HTMLElement} container
+ */ parcelHelpers.export(exports, "displayImageSet", ()=>displayImageSet);
+/*****************
+ * Configuration *
+ ******************
+
+
 /**
  * @description
  * 入力された画像ファイルと管理ID、ECサイトの設定を取得する。
@@ -6057,16 +6105,23 @@ const joinImagesBtn = document.getElementById("joining-image");
 const downloadContainer = document.getElementById('download-container');
 const downloadBtns = [];
 const downloadAllBtn = document.getElementById("download-zip-button-all");
-const galleryContainer = document.getElementById("gallery-container");
+const tabsContainer = document.getElementById("tabs-container");
+const tabContentContainer = document.getElementById("tab-content-container");
+const tabBtns = [];
+const checkBoxes = [];
 const EcSiteNameInputs = [];
 const limitNumberInputs = [];
 const imageWidthInputs = [];
 const imageHeightInputs = [];
 function initUI() {
-    initControlRows();
-    initDownloadButtons();
+    createControlRows();
+    createDownloadButtons();
+    createTabs();
 }
-function initControlRows() {
+/**
+ * @description
+ * 各ECサイトのコントロール行を生成
+ */ function createControlRows() {
     _config.initEcSiteConfigSet.forEach((config, row)=>{
         const rowElement = createControlRowElement(config);
         controlRowsContainer.appendChild(rowElement);
@@ -6079,6 +6134,7 @@ function initControlRows() {
             checkSelectCheckbox.id = `ec-site-checkbox-${row}`;
             checkSelectCheckbox.checked = initialConfig.isSelected;
             controlRow.appendChild(checkSelectCheckbox);
+            checkBoxes.push(checkSelectCheckbox);
             controlRow.appendChild(createAndPushInputGroup('ec-site-name', "EC\u30B5\u30A4\u30C8:", 'text', initialConfig.ecSiteName, undefined, {
                 maxlength: '50'
             }));
@@ -6140,7 +6196,10 @@ function initControlRows() {
         }
     });
 }
-function initDownloadButtons() {
+/**
+ * @description
+ * ダウンロードボタンを生成
+ */ function createDownloadButtons() {
     _config.initEcSiteConfigSet.forEach((config, index)=>{
         const downloadBtn = document.createElement("button");
         downloadBtn.className = "download-zip-button";
@@ -6152,6 +6211,46 @@ function initDownloadButtons() {
         const downloadBtnContainer = document.createElement("div");
         downloadBtnContainer.appendChild(downloadBtn);
         downloadContainer.appendChild(downloadBtnContainer);
+    });
+}
+/**
+ * @description 現在の選択に基づいてタブを生成または再生成する
+ */ function createTabs() {
+    const ecSiteConfigs = getConfig().ecSiteConfigSet;
+    tabsContainer.innerHTML = "";
+    ecSiteConfigs.forEach((config, index)=>{
+        const tabBtn = document.createElement("button");
+        tabBtn.className = "tab-button";
+        tabBtn.textContent = config.ecSiteName;
+        tabBtn.dataset.index = String(index);
+        tabBtn.disabled = !config.isSelected;
+        if (index === 0) tabBtn.classList.add("active");
+        tabsContainer.appendChild(tabBtn);
+        tabBtns.push(tabBtn);
+    });
+}
+function displayImageSet(imageFiles, managementId, container) {
+    container.innerHTML = "";
+    imageFiles.forEach((imageFile, index)=>{
+        const imageUrl = URL.createObjectURL(imageFile);
+        const itemContainer = document.createElement("div");
+        itemContainer.className = "image-item";
+        const imgElement = document.createElement("img");
+        imgElement.src = imageUrl;
+        itemContainer.appendChild(imgElement);
+        const link = document.createElement("a");
+        link.href = imageUrl;
+        const fileNumber = String(index + 1).padStart(2, '0');
+        const extension = imageFile.name.split('.').pop() || 'jpeg';
+        link.download = `${managementId}_${fileNumber}.${extension}`;
+        link.textContent = `\u{30C0}\u{30A6}\u{30F3}\u{30ED}\u{30FC}\u{30C9} (${link.download})`;
+        itemContainer.appendChild(link);
+        container.appendChild(itemContainer);
+        imgElement.onload = ()=>{
+            setTimeout(()=>{
+                URL.revokeObjectURL(imageUrl);
+            }, 1000);
+        };
     });
 }
 function getConfig() {

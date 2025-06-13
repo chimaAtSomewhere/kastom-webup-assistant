@@ -1,31 +1,41 @@
-<!DOCTYPE html><meta charset=UTF-8><title>KAstom Webup Assistant</title><link rel=stylesheet href=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.33f6bee1.css><body>
+<!DOCTYPE html><meta charset=UTF-8><title>KAstom Webup Assistant</title><link rel=stylesheet href=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.7de9d6e0.css><body>
     <h1>KAWA - KAstom Webup Assistant</h1>
     <h2>画像結合ツール</h2>
     <p>
       複数画像をアップロードして、EC サイトの上限に合わせたコラージュ画像を作成します。
       <br>
-      画像ファイル名は (管理番号)_(通し番号).jpg, zipファイル名は (管理番号)_(店舗名).zip になります。 
+      画像ファイル名は (管理番号)_(通し番号).jpg, zipファイル名は (管理番号)_(ECサイト名).zip になります。 
     </p>
-    <div style=display:flex>
-      <div>
-        <input type=file id=input-image-files multiple accept=image/*>
+    <br>
+    <div id=main-container>
+      <div id=config-container>
+        <div style=flex-direction:row;display:flex>
+          <div>
+            <input type=file id=input-image-files multiple accept=image/*>
+          </div>
+          <div>
+            <label for=managementId>管理番号:</label>
+            <input id=managementId value=0000xx-00 style=width:70px>
+          </div>
+        </div>
+        <div id=control-rows-container></div>
       </div>
       <div>
-        <label for=managementId>管理番号:</label>
-        <input id=managementId value=0000xx-00 style=width:70px>
+        <button id=joining-image>画像結合を開始</button>
+        <br>
+        <br>
+        <div id=download-container style=margin-bottom:5pt>
+          <button id=download-zip-button-all disabled=true>まとめてダウンロード</button>
+        </div>
       </div>
     </div>
     <br>
-    <div id=control-rows-container></div>
-    <br><br>
-    <button id=joining-image>画像結合を開始</button>
-    <br><br>
-    <div id=download-container style=margin-bottom:5pt>
-      <button id=download-zip-button-all disabled=true>まとめてダウンロード</button>
+    <br>
+    <div id=result-display-container>
+      <div id=tabs-container></div>
+      <div id=tab-content-container>
+        ファイルを選択して画像結合を開始してください
+      </div>
     </div>
-    <br><br>
-    <div id=gallery-container class=gallery-container>
-    </div>
-    <script type=module src=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.92fb86e0.js></script>
+    <script type=module src=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.45f89761.js></script>
   
-
