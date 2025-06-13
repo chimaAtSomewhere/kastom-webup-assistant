@@ -3,17 +3,45 @@ import * as config from './config';
 import * as ui from './ui';
 import * as imageProcessor from './imageProcessor';
 
-// ****************************
-// * Initialize UI components *
-// ****************************
+// *****************
+// * UI components *
+// *****************
 
 ui.initUI();
+
+/**
+ * @description タブの表示状態とコンテンツを更新する
+ */
+function updateTabDisplay() {
+  const managementId = ui.getConfig().managementId || '0000xx-00';
+
+  ui.tabBtns.forEach(btn => {
+    if (parseInt(btn.dataset.index!) === activeTabIndex) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+
+  // コンテンツ表示
+  if (processedImageSets[activeTabIndex] && processedImageSets[activeTabIndex].length > 0) {
+     ui.displayImageSet(processedImageSets[activeTabIndex], managementId, ui.tabContentContainer);
+  } else {
+    const conf = ui.getConfig().ecSiteConfigSet[activeTabIndex];
+    if (conf && conf.isSelected) {
+        ui.tabContentContainer.innerHTML = `「${conf.ecSiteName}」の画像はまだ処理されていません。「画像結合を開始」ボタンを押してください。`;
+    } else {
+        ui.tabContentContainer.innerHTML = "表示するタブを選択してください。";
+    }
+  }
+}
 
 // *************
 // * Variables *
 // *************
 
 let processedImageSets: File[][] = [];
+let activeTabIndex: number = 0; 
 
 // ***********************
 // * Set event listeners *
@@ -40,8 +68,6 @@ ui.downloadAllBtn.addEventListener("click", async () => {
     ui.downloadAllBtn.textContent = temp;
   }
 });
-
-
 
 ui.downloadBtns.forEach((downloadZipBtn, index) => {
   downloadZipBtn.addEventListener("click", async () => {
@@ -79,8 +105,6 @@ ui.joinImagesBtn.addEventListener("click", async () => {
     alert("画像は3枚以上選択してください");
     return;
   }
-
-  // ui.showLoadingIndicator();  
 
   const promises: Promise<void>[] = 
     ecSiteConfigSet.map(async ({ isSelected, ecSiteName, limitNumber, isToResize, imageWidth, imageHeight }, index) => {
@@ -146,27 +170,10 @@ ui.joinImagesBtn.addEventListener("click", async () => {
   ui.joinImagesBtn.disabled = false;
 });
 
-/**
- * @description 
- * 画像ファイルとそのダウンロードリンクとを表示する．
- * @param imageFiles 
- * @param fileNamePrefix 
- */
-function displayImages(imageFiles: File[], fileNamePrefix: string): void {
-  ui.galleryContainer.innerHTML = "";
-
-  imageFiles.forEach((imageFile, index) => {
-    const imgElement = document.createElement("img");
-    imgElement.src = URL.createObjectURL(imageFile);
-    imgElement.width = 200;
-    imgElement.height = 150;
-    ui.galleryContainer.appendChild(imgElement);
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(imageFile);
-    link.download = `${fileNamePrefix}_${index + 1}.jpeg`;
-    link.textContent = `ダウンロード ${fileNamePrefix}_${index + 1}`;
-    ui.galleryContainer.appendChild(link);
-    ui.galleryContainer.appendChild(document.createElement("br"));
+ui.tabBtns.forEach((tabButton, index) => {
+  tabButton.addEventListener("click", () => {
+    activeTabIndex = index;
+    updateTabDisplay();
   });
-}
+});
+

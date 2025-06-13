@@ -6,9 +6,12 @@ canvas {
   border: 1px solid #ccc;
   margin-bottom: 10px;
 }
+/* .gallery-container は不要になったので削除またはコメントアウト */
+/*
 .gallery-container {
   margin-top: 20px;
 }
+*/
 .checkbox {
   display: flex;
   align-items: left;
@@ -48,4 +51,62 @@ white-space: nowrap;
 .download-zip-button {
   width: 320px;
   text-align: left;
+}
+
+#tabs-container {
+  display: flex;
+  border-bottom: 2px solid #ccc;
+  margin-bottom: 10px;
+}
+.tab-button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  background-color: #f1f1f1;
+  margin-right: 5px;
+  border-radius: 5px 5px 0 0;
+}
+.tab-button.active {
+  background-color: #fff;
+  border-bottom: 2px solid #fff;
+  position: relative;
+  top: 1px;
+  font-weight: bold;
+}
+#tab-content-container {
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-top: none;
+  min-height: 100px;
+}
+.image-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+.image-item:last-child {
+  border-bottom: none;
+}
+.image-item img {
+  width: 200px;
+  height: auto;
+  margin-right: 15px;
+  border: 1px solid #ddd;
+  object-fit: contain;
+}
+.image-item a {
+  text-decoration: none;
+  padding: 8px 12px;
+  border: 1px solid #007bff;
+  color: #007bff;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.image-item a:hover {
+  background-color: #007bff;
+  color: #fff;
 }

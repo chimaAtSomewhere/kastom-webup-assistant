@@ -5,3 +5,4 @@ package-lock.json
 .prettierrc
 dist/
 test.sh
+directory_summary.txt

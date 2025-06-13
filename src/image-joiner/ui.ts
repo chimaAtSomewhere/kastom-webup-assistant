@@ -10,15 +10,17 @@ export const joinImagesBtn: HTMLButtonElement = document.getElementById("joining
 export const downloadContainer: HTMLDivElement = document.getElementById('download-container') as HTMLDivElement;
 export const downloadBtns: HTMLButtonElement[] = [];
 export const downloadAllBtn: HTMLButtonElement = document.getElementById("download-zip-button-all") as HTMLButtonElement;
-export const galleryContainer: HTMLDivElement = document.getElementById("gallery-container") as HTMLDivElement;
+export const tabsContainer: HTMLDivElement = document.getElementById("tabs-container") as HTMLDivElement;
+export const tabContentContainer: HTMLDivElement = document.getElementById("tab-content-container") as HTMLDivElement;
+export const tabBtns: HTMLButtonElement[] = [];
 export const EcSiteNameInputs: HTMLInputElement[] = [];
 export const limitNumberInputs: HTMLInputElement[] = [];
 export const imageWidthInputs: HTMLInputElement[] = [];
 export const imageHeightInputs: HTMLInputElement[] = [];
 
-// *********************
-// * UI Initialization *
-// *********************
+// **************
+// * Components *
+// **************
 
 /**
  * @param {void}
@@ -26,11 +28,16 @@ export const imageHeightInputs: HTMLInputElement[] = [];
  * @description Initializes the UI by setting up control rows and download buttons.
  */
 export function initUI(): void {
-  initControlRows();
-  initDownloadButtons();
+  createControlRows();
+  createDownloadButtons();
+  createTabs();
 };
 
-function initControlRows(): void {
+/**
+ * @description
+ * 各ECサイトのコントロール行を生成
+ */
+function createControlRows(): void {
   config.initEcSiteConfigSet.forEach((config, row) => {
     const rowElement = createControlRowElement(config);
     controlRowsContainer.appendChild(rowElement);
@@ -127,7 +134,11 @@ function initControlRows(): void {
   });
 }
 
-function initDownloadButtons(): void {
+/**
+ * @description
+ * ダウンロードボタンを生成
+ */
+function createDownloadButtons(): void {
   config.initEcSiteConfigSet.forEach((config, index) => {
   const downloadBtn = document.createElement("button");
   downloadBtn.className = "download-zip-button";
@@ -142,6 +153,67 @@ function initDownloadButtons(): void {
   downloadContainer.appendChild(downloadBtnContainer);
 });
 }
+
+/**
+ * @description 現在の選択に基づいてタブを生成または再生成する
+ */
+function createTabs() {
+  const ecSiteConfigs = getConfig().ecSiteConfigSet;
+  tabsContainer.innerHTML = "";
+
+  ecSiteConfigs.forEach((config, index) => {
+      const tabButton = document.createElement("button");
+      tabButton.className = "tab-button";
+      tabButton.textContent = config.ecSiteName;
+      tabButton.dataset.index = String(index); 
+      tabButton.disabled = !config.isSelected; 
+      tabsContainer.appendChild(tabButton);
+      tabBtns.push(tabButton);
+  });
+}
+
+/**
+ * @description 
+ * 指定されたコンテナに画像ファイルとそのダウンロードリンクを表示する。
+ * @param {File[]} imageFiles
+ * @param {string} managementId
+ * @param {HTMLElement} container
+ */
+export function displayImageSet(imageFiles: File[], managementId: string, container: HTMLElement): void {
+  container.innerHTML = "";
+
+  imageFiles.forEach((imageFile, index) => {
+    const imageUrl = URL.createObjectURL(imageFile);
+
+    const itemContainer = document.createElement("div");
+    itemContainer.className = "image-item";
+
+    const imgElement = document.createElement("img");
+    imgElement.src = imageUrl;
+    itemContainer.appendChild(imgElement);
+
+    const link = document.createElement("a");
+    link.href = imageUrl;
+    const fileNumber = String(index + 1).padStart(2, '0');
+    const extension = imageFile.name.split('.').pop() || 'jpeg';
+    link.download = `${managementId}_${fileNumber}.${extension}`;
+    link.textContent = `ダウンロード (${link.download})`;
+    itemContainer.appendChild(link);
+
+    container.appendChild(itemContainer);
+
+    imgElement.onload = () => { setTimeout(() => {
+      URL.revokeObjectURL(imageUrl);
+    }, 1000); };
+  });
+}
+
+
+
+/*****************
+ * Configuration *
+ ******************
+
 
 /**
  * @description
