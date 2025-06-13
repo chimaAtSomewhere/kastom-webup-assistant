@@ -16,14 +16,17 @@
     <br>
     <div id="main-container">
       <div id="config-container">
-        <div style="display: flex; flex-direction: row">
-          <div>
-            <input type="file" id="input-image-files" multiple accept="image/*" />
+        <div id="drop-zone">
+          <p id="drop-zone-text">このエリアにファイルをドラッグ＆ドロップできます</p>
+          <div style="display: flex; flex-direction: row; align-items: center; justify-content: center;">
+            <div>
+              <input type="file" id="input-image-files" multiple accept="image/*" />
+            </div>
           </div>
-          <div>
-            <label for="managementId">管理番号:</label>
-            <input type="text" id="managementId" value="0000xx-00" style="width: 70px;" />
-          </div>
+        </div>
+        <div>
+          <label for="managementId">管理番号:</label>
+          <input type="text" id="managementId" value="0000xx-00" style="width: 70px;" />
         </div>
         <div id="control-rows-container"></div>
       </div>

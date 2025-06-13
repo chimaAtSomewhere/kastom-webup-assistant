@@ -25,6 +25,13 @@ let processStatus: ProcessStatus = ProcessStatus.NOT_PROCESSED;
 // ***********************
 // * Set event listeners *
 // ***********************
+ui.inputImageFilesInput.addEventListener("change", () => {
+  if (ui.inputImageFilesInput.files && ui.inputImageFilesInput.files.length > 0) {
+    ui.dropZoneText.textContent = `${ui.inputImageFilesInput.files.length}個のファイルが選択されています。`;
+  } else {
+    ui.dropZoneText.textContent = 'このエリアにファイルをドラッグ＆ドロップできます';
+  }
+});
 
 ui.downloadAllBtn.addEventListener("click", async () => {
   const isProcessing = processedImageSets.some((set,index) => {
@@ -45,6 +52,33 @@ ui.downloadAllBtn.addEventListener("click", async () => {
 
     ui.downloadAllBtn.disabled = false;
     ui.downloadAllBtn.textContent = temp;
+  }
+});
+
+ui.dropZone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  ui.dropZone.classList.add("dragover");
+});
+
+ui.dropZone.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  ui.dropZone.classList.remove("dragover");
+});
+
+ui.dropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  ui.dropZone.classList.remove("dragover");
+
+  const files = e.dataTransfer?.files;
+  if (files && files.length > 0) {
+    // 既存の input 要素にファイルをセット
+    ui.inputImageFilesInput.files = files;
+    // change イベントを手動で発火させて、テキスト更新などをトリガーする
+    const event = new Event('change', { bubbles: true });
+    ui.inputImageFilesInput.dispatchEvent(event);
   }
 });
 

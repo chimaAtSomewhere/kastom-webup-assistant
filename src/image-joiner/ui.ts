@@ -3,6 +3,8 @@ import * as config from './config'
 // ***************
 // * UI Elements *
 // ***************
+export const dropZone: HTMLDivElement = document.getElementById("drop-zone") as HTMLDivElement;
+export const dropZoneText: HTMLParagraphElement = document.getElementById("drop-zone-text") as HTMLParagraphElement;
 export const inputImageFilesInput: HTMLInputElement = document.getElementById("input-image-files") as HTMLInputElement;
 export const managementIdInput: HTMLInputElement = document.getElementById("managementId") as HTMLInputElement;
 export const controlRowsContainer: HTMLDivElement = document.getElementById('control-rows-container') as HTMLDivElement;
