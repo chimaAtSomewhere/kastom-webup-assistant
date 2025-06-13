@@ -9,39 +9,18 @@ import * as imageProcessor from './imageProcessor';
 
 ui.initUI();
 
-/**
- * @description タブの表示状態とコンテンツを更新する
- */
-function updateTabDisplay() {
-  const managementId = ui.getConfig().managementId || '0000xx-00';
-
-  ui.tabBtns.forEach(btn => {
-    if (parseInt(btn.dataset.index!) === activeTabIndex) {
-      btn.classList.add("active");
-    } else {
-      btn.classList.remove("active");
-    }
-  });
-
-  // コンテンツ表示
-  if (processedImageSets[activeTabIndex] && processedImageSets[activeTabIndex].length > 0) {
-     ui.displayImageSet(processedImageSets[activeTabIndex], managementId, ui.tabContentContainer);
-  } else {
-    const conf = ui.getConfig().ecSiteConfigSet[activeTabIndex];
-    if (conf && conf.isSelected) {
-        ui.tabContentContainer.innerHTML = `「${conf.ecSiteName}」の画像はまだ処理されていません。「画像結合を開始」ボタンを押してください。`;
-    } else {
-        ui.tabContentContainer.innerHTML = "表示するタブを選択してください。";
-    }
-  }
-}
-
 // *************
 // * Variables *
 // *************
 
-let processedImageSets: File[][] = [];
-let activeTabIndex: number = 0; 
+let processedImageSets: File[][] = new Array(config.ecSiteCount).fill([]);
+let activeTabIndex: number = 0;
+enum ProcessStatus {
+  NOT_PROCESSED = "未処理",
+  PROCESSING = "処理中",
+  PROCESSED = "処理済み"
+}
+let processStatus: ProcessStatus = ProcessStatus.NOT_PROCESSED;
 
 // ***********************
 // * Set event listeners *
@@ -91,9 +70,13 @@ ui.downloadBtns.forEach((downloadZipBtn, index) => {
 
 ui.joinImagesBtn.addEventListener("click", async () => {
   const tmpProcessedImageSets: File[][] = processedImageSets;
+  processedImageSets = new Array(config.ecSiteCount).fill([]);
   ui.downloadAllBtn.disabled = true;
   ui.downloadBtns.forEach(btn => btn.disabled = true);
   ui.joinImagesBtn.disabled = true;
+  processStatus = ProcessStatus.PROCESSING;
+
+  updateTabDisplay();
 
   const { inputFiles, ecSiteConfigSet, managementId } = ui.getConfig();
   
@@ -168,6 +151,8 @@ ui.joinImagesBtn.addEventListener("click", async () => {
   await Promise.all(promises);
   ui.downloadAllBtn.disabled = false;
   ui.joinImagesBtn.disabled = false;
+  processStatus = ProcessStatus.PROCESSED;
+  updateTabDisplay();
 });
 
 ui.tabBtns.forEach((tabButton, index) => {
@@ -177,3 +162,50 @@ ui.tabBtns.forEach((tabButton, index) => {
   });
 });
 
+ui.checkBoxes.forEach((checkbox, index) => {
+  checkbox.addEventListener("change", () => {
+    ui.tabBtns[index].disabled = !checkbox.checked;
+    updateTabDisplay();
+  });
+});
+
+/**
+ * @description タブの表示状態とコンテンツを更新する
+ */
+function updateTabDisplay() {
+  const managementId = ui.getConfig().managementId || '0000xx-00';
+
+  ui.tabBtns.forEach(btn => {
+    if (parseInt(btn.dataset.index!) === activeTabIndex) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+
+  switch (processStatus) {
+    case ProcessStatus.NOT_PROCESSED:
+      ui.tabContentContainer.innerHTML = "ファイルを選択して画像結合を開始してください";
+      break;
+    case ProcessStatus.PROCESSING:
+      ui.tabContentContainer.innerHTML = "画像を結合中です。しばらくお待ちください...";
+      break;
+    case ProcessStatus.PROCESSED:
+      if (processedImageSets[activeTabIndex] && processedImageSets[activeTabIndex].length > 0) {
+        ui.displayImageSet(processedImageSets[activeTabIndex], managementId, ui.tabContentContainer);
+      }
+      else {  
+        const conf = ui.getConfig().ecSiteConfigSet[activeTabIndex];
+        if (conf && conf.isSelected) {
+          ui.tabContentContainer.innerHTML = "画像が結合されていません。";
+        } else {
+          ui.tabContentContainer.innerHTML = "表示するタブを選択してください。";
+        }
+      }
+      break;
+    default:
+      ui.tabContentContainer.innerHTML = "不明な状態です。コンソールを確認してください。";
+      console.error("Unknown process status:", processStatus);
+      break;
+    }
+}

@@ -13,6 +13,7 @@ export const downloadAllBtn: HTMLButtonElement = document.getElementById("downlo
 export const tabsContainer: HTMLDivElement = document.getElementById("tabs-container") as HTMLDivElement;
 export const tabContentContainer: HTMLDivElement = document.getElementById("tab-content-container") as HTMLDivElement;
 export const tabBtns: HTMLButtonElement[] = [];
+export const checkBoxes: HTMLInputElement[] = [];
 export const EcSiteNameInputs: HTMLInputElement[] = [];
 export const limitNumberInputs: HTMLInputElement[] = [];
 export const imageWidthInputs: HTMLInputElement[] = [];
@@ -52,6 +53,7 @@ function createControlRows(): void {
       checkSelectCheckbox.id = `ec-site-checkbox-${row}`;
       checkSelectCheckbox.checked = initialConfig.isSelected;
       controlRow.appendChild(checkSelectCheckbox);
+      checkBoxes.push(checkSelectCheckbox);
 
       controlRow.appendChild(
         createAndPushInputGroup('ec-site-name', 'ECサイト:', 'text', initialConfig.ecSiteName, undefined, { maxlength: '50' })
