@@ -14,7 +14,7 @@ ui.initUI();
 // *************
 
 let processedImageSets: File[][] = new Array(config.ecSiteCount).fill([]);
-let activeTabIndex: number = 0;
+let activeTabIndex: number = 1;
 enum ProcessStatus {
   NOT_PROCESSED = "未処理",
   PROCESSING = "処理中",

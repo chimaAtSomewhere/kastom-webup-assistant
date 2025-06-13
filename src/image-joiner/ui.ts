@@ -164,13 +164,16 @@ function createTabs() {
   tabsContainer.innerHTML = "";
 
   ecSiteConfigs.forEach((config, index) => {
-      const tabButton = document.createElement("button");
-      tabButton.className = "tab-button";
-      tabButton.textContent = config.ecSiteName;
-      tabButton.dataset.index = String(index); 
-      tabButton.disabled = !config.isSelected; 
-      tabsContainer.appendChild(tabButton);
-      tabBtns.push(tabButton);
+      const tabBtn = document.createElement("button");
+      tabBtn.className = "tab-button";
+      tabBtn.textContent = config.ecSiteName;
+      tabBtn.dataset.index = String(index); 
+      tabBtn.disabled = !config.isSelected; 
+      if (index === 0) {
+        tabBtn.classList.add("active");
+      }
+      tabsContainer.appendChild(tabBtn);
+      tabBtns.push(tabBtn);
   });
 }
 

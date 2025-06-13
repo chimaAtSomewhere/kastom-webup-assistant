@@ -6,12 +6,10 @@ canvas {
   border: 1px solid #ccc;
   margin-bottom: 10px;
 }
-/* .gallery-container は不要になったので削除またはコメントアウト */
-/*
-.gallery-container {
-  margin-top: 20px;
+#main-container {
+  display: flex;
+  flex-direction: row;
 }
-*/
 .checkbox {
   display: flex;
   align-items: left;
@@ -56,7 +54,6 @@ white-space: nowrap;
 #tabs-container {
   display: flex;
   border-bottom: 2px solid #ccc;
-  margin-bottom: 10px;
 }
 .tab-button {
   padding: 10px 15px;
@@ -72,7 +69,6 @@ white-space: nowrap;
   border-bottom: 2px solid #fff;
   position: relative;
   top: 1px;
-  font-weight: bold;
 }
 #tab-content-container {
   padding: 15px;
