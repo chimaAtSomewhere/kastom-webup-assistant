@@ -690,6 +690,10 @@ let processStatus = "\u672A\u51E6\u7406";
 // ***********************
 // * Set event listeners *
 // ***********************
+_ui.inputImageFilesInput.addEventListener("change", ()=>{
+    if (_ui.inputImageFilesInput.files && _ui.inputImageFilesInput.files.length > 0) _ui.dropZoneText.textContent = `${_ui.inputImageFilesInput.files.length}\u{500B}\u{306E}\u{30D5}\u{30A1}\u{30A4}\u{30EB}\u{304C}\u{9078}\u{629E}\u{3055}\u{308C}\u{3066}\u{3044}\u{307E}\u{3059}\u{3002}`;
+    else _ui.dropZoneText.textContent = "\u3053\u306E\u30A8\u30EA\u30A2\u306B\u30D5\u30A1\u30A4\u30EB\u3092\u30C9\u30E9\u30C3\u30B0\uFF06\u30C9\u30ED\u30C3\u30D7\u3067\u304D\u307E\u3059";
+});
 _ui.downloadAllBtn.addEventListener("click", async ()=>{
     const isProcessing = processedImageSets.some((set, index)=>{
         const isEmpty = set.length === 0;
@@ -706,6 +710,31 @@ _ui.downloadAllBtn.addEventListener("click", async ()=>{
         await _zipUtil.packageAllAndDownloadAsZip(processedImageSets, managedId, ecSiteNames);
         _ui.downloadAllBtn.disabled = false;
         _ui.downloadAllBtn.textContent = temp;
+    }
+});
+_ui.dropZone.addEventListener("dragover", (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    _ui.dropZone.classList.add("dragover");
+});
+_ui.dropZone.addEventListener("dragleave", (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    _ui.dropZone.classList.remove("dragover");
+});
+_ui.dropZone.addEventListener("drop", (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    _ui.dropZone.classList.remove("dragover");
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+        // 既存の input 要素にファイルをセット
+        _ui.inputImageFilesInput.files = files;
+        // change イベントを手動で発火させて、テキスト更新などをトリガーする
+        const event = new Event('change', {
+            bubbles: true
+        });
+        _ui.inputImageFilesInput.dispatchEvent(event);
     }
 });
 _ui.downloadBtns.forEach((downloadZipBtn, index)=>{
@@ -6056,6 +6085,8 @@ exports.export = function(dest, destName, get) {
 },{}],"e86Ui":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "dropZone", ()=>dropZone);
+parcelHelpers.export(exports, "dropZoneText", ()=>dropZoneText);
 parcelHelpers.export(exports, "inputImageFilesInput", ()=>inputImageFilesInput);
 parcelHelpers.export(exports, "managementIdInput", ()=>managementIdInput);
 parcelHelpers.export(exports, "controlRowsContainer", ()=>controlRowsContainer);
@@ -6098,6 +6129,8 @@ parcelHelpers.export(exports, "imageHeightInputs", ()=>imageHeightInputs);
  * @returns {Object} 
  */ parcelHelpers.export(exports, "getConfig", ()=>getConfig);
 var _config = require("./config");
+const dropZone = document.getElementById("drop-zone");
+const dropZoneText = document.getElementById("drop-zone-text");
 const inputImageFilesInput = document.getElementById("input-image-files");
 const managementIdInput = document.getElementById("managementId");
 const controlRowsContainer = document.getElementById('control-rows-container');

@@ -13,6 +13,26 @@ canvas {
   display: flex;
 }
 
+#drop-zone {
+  text-align: center;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  padding: 20px;
+  transition: background-color .2s, border-color .2s;
+}
+
+#drop-zone.dragover {
+  background-color: #f0f8ff;
+  border-color: #007bff;
+}
+
+#drop-zone-text {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: .9em;
+}
+
 .checkbox {
   align-items: left;
   display: flex;

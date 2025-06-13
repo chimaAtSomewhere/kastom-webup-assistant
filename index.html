@@ -1,4 +1,4 @@
-<!DOCTYPE html><meta charset=UTF-8><title>KAstom Webup Assistant</title><link rel=stylesheet href=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.7de9d6e0.css><body>
+<!DOCTYPE html><meta charset=UTF-8><title>KAstom Webup Assistant</title><link rel=stylesheet href=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.20bab0f3.css><body>
     <h1>KAWA - KAstom Webup Assistant</h1>
     <h2>画像結合ツール</h2>
     <p>
@@ -9,14 +9,17 @@
     <br>
     <div id=main-container>
       <div id=config-container>
-        <div style=flex-direction:row;display:flex>
-          <div>
-            <input type=file id=input-image-files multiple accept=image/*>
+        <div id=drop-zone>
+          <p id=drop-zone-text>このエリアにファイルをドラッグ＆ドロップできます</p>
+          <div style=flex-direction:row;justify-content:center;align-items:center;display:flex>
+            <div>
+              <input type=file id=input-image-files multiple accept=image/*>
+            </div>
           </div>
-          <div>
-            <label for=managementId>管理番号:</label>
-            <input id=managementId value=0000xx-00 style=width:70px>
-          </div>
+        </div>
+        <div>
+          <label for=managementId>管理番号:</label>
+          <input id=managementId value=0000xx-00 style=width:70px>
         </div>
         <div id=control-rows-container></div>
       </div>
@@ -37,5 +40,5 @@
         ファイルを選択して画像結合を開始してください
       </div>
     </div>
-    <script type=module src=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.45f89761.js></script>
+    <script type=module src=https://chimaatsomewhere.github.io/kastom-webup-assistant/kastom-webup-assistant.478b7faa.js></script>
   
